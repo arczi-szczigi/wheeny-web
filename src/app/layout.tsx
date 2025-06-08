@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import ClientStyleWrapper from "@/components/ClientStyleWrapper";
+import { EstateProvider } from "@/context/EstateContext";
 
 export const metadata: Metadata = {
 	title: "Manager Wheeny Panel",
@@ -14,7 +14,7 @@ export default function RootLayout({
 	return (
 		<html lang='pl'>
 			<body>
-				<ClientStyleWrapper>{children}</ClientStyleWrapper>
+				<EstateProvider>{children}</EstateProvider>
 			</body>
 		</html>
 	);
