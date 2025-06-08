@@ -175,7 +175,7 @@ const menuItems = [
 	{
 		label: "Wiadomości",
 		icon: "/assets/sidebar/comment-alt.svg",
-		path: "/dashboard/messages",
+		path: "/messagesPanel",
 	},
 	{
 		label: "Zgłoszenia",
@@ -185,17 +185,17 @@ const menuItems = [
 	{
 		label: "Rozliczenia osiedla",
 		icon: "/assets/sidebar/document 2.svg",
-		path: "/dashboard/accounts",
+		path: "/advancePayment",
 	},
 	{
 		label: "Dokumenty",
 		icon: "/assets/sidebar/folder-open 2.svg",
-		path: "/dashboard/documents",
+		path: "/documentsPanel",
 	},
 	{
 		label: "Dodaj ogłoszenie",
 		icon: "/assets/sidebar/book.svg",
-		path: "/dashboard/ads",
+		path: "/announcmentPanel",
 	},
 	{
 		label: "Odpady",

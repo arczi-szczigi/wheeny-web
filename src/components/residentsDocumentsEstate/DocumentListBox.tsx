@@ -4,17 +4,17 @@ import styled from "styled-components";
 // --- Styled Components ---
 
 const Container = styled.div`
-	width: 100vw;
+	width: 100%;
 	min-height: 100vh;
 	background: #f5f5f5;
 	display: flex;
 	flex-direction: column;
-	align-items: flex-start;
+	align-items: center;
 	justify-content: flex-start;
 `;
 
 const MainPanel = styled.div`
-	width: 1400px;
+	width: 1150px;
 	margin: 42px auto 0 auto;
 	background: #fdfdfd;
 	border-top-left-radius: 20px;

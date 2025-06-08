@@ -1,9 +1,13 @@
+"use client";
+
 import React from "react";
 import styled from "styled-components";
 
+const WRAPPER_WIDTH = 660;
+
 const Wrapper = styled.div`
-	width: 706px;
-	height: 780px;
+	width: ${WRAPPER_WIDTH}px;
+	height: 760px;
 	background: #fdfdfd;
 	box-shadow: 1px 1px 10px rgba(0, 0, 0, 0.02);
 	border-radius: 10px;
@@ -20,7 +24,6 @@ const TopBar = styled.div`
 	border-top-right-radius: 10px;
 	display: flex;
 	align-items: center;
-	padding: 0 32px;
 	gap: 32px;
 	box-shadow: 1px 1px 10px rgba(0, 0, 0, 0.02);
 `;
@@ -30,6 +33,7 @@ const UserBlock = styled.div`
 	align-items: center;
 	gap: 20px;
 	flex: 1;
+	padding-left: 32px;
 `;
 
 const UserIcon = styled.img`
@@ -75,6 +79,7 @@ const StatusBtn = styled.button`
 	color: #202020;
 	letter-spacing: 0.6px;
 	cursor: pointer;
+	margin-right: 32px;
 `;
 
 const StatusIcon = styled.img`
@@ -95,7 +100,6 @@ const ConversationBody = styled.div`
 	flex-direction: column;
 	padding: 0 32px;
 	padding-bottom: 84px;
-	position: relative;
 	background: transparent;
 	overflow-y: auto;
 `;
@@ -158,24 +162,27 @@ const MsgMeta = styled.div`
 `;
 
 const Footer = styled.div`
-	position: absolute;
-	bottom: 0;
-	left: 0;
 	width: 100%;
-	padding: 0 32px 24px 32px;
+	position: absolute;
+	left: 0;
+	bottom: 0;
 	background: transparent;
+	padding-bottom: 24px;
+	pointer-events: none; /* żeby nie przeszkadzało scrollowi */
 `;
 
 const InputBar = styled.div`
 	width: 100%;
+	box-sizing: border-box;
+	padding: 0 32px;
 	height: 50px;
 	background: #f3f3f3;
 	border-radius: 10px;
 	border: 1px solid #dadada;
 	display: flex;
 	align-items: center;
-	padding: 0 14px 0 16px;
 	gap: 10px;
+	pointer-events: auto; /* tylko input ma reagować */
 `;
 
 const MsgInput = styled.input`
@@ -200,7 +207,6 @@ const FooterIcon = styled.img`
 `;
 
 export default function ConversationBox() {
-	// Wartości "na sztywno" zgodnie z widokiem
 	return (
 		<Wrapper>
 			<TopBar>
@@ -221,7 +227,6 @@ export default function ConversationBox() {
 			<ConversationBody>
 				<DateDivider>Wczoraj</DateDivider>
 
-				{/* WIADOMOŚĆ OD DOROTA */}
 				<MessageRow>
 					<Avatar src='/assets/msgPanel/dorota.png' alt='Dorota' />
 					<div>
@@ -245,7 +250,6 @@ export default function ConversationBox() {
 					</div>
 				</MessageRow>
 
-				{/* TWOJA WIADOMOŚĆ */}
 				<MessageRow own>
 					<div>
 						<Bubble own>

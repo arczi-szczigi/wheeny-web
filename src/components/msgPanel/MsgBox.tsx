@@ -71,7 +71,7 @@ const messages = [
 ];
 
 const Wrapper = styled.div`
-	width: 400px;
+	width: 370px;
 	height: 780px;
 	background: #fdfdfd;
 	box-shadow: 1px 1px 10px rgba(0, 0, 0, 0.02);
