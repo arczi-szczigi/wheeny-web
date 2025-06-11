@@ -270,14 +270,14 @@ export default function YourOrganisation() {
 					{/* Kolumna 1 */}
 					<InputGroup>
 						<InputLabelRow>
-							<Icon src='/assets/yourOrganisation/building.svg' alt='' />
+							<Icon src='/assets/yourOrganisation/building2.svg' alt='' />
 							<InputLabel>Nazwa firmy</InputLabel>
 						</InputLabelRow>
 						<InputField>NAZWA FIRMY</InputField>
 					</InputGroup>
 					<InputGroup>
 						<InputLabelRow>
-							<Icon src='/assets/yourOrganisation/building.svg' alt='' />
+							<Icon src='/assets/yourOrganisation/building2.svg' alt='' />
 							<InputLabel>NIP</InputLabel>
 						</InputLabelRow>
 						<InputField>NIP</InputField>

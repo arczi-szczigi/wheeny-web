@@ -1,20 +1,23 @@
+"use client";
+
 import React from "react";
 import styled from "styled-components";
 
-// Kontenery i layouty
+// Kontenery i layouty – teraz wrapper centruje zawartość
 const Wrapper = styled.div`
 	width: 100%;
-	height: 100%;
-	position: relative;
+	display: flex;
+	flex-direction: column;
+	align-items: center; /* centrowanie w poziomie */
+	gap: 32px; /* odstęp między bannerem a kartą */
+	padding-bottom: 40px; /* opcjonalny dół, żeby nie przyklejało się przy przewijaniu */
 `;
 
-// Banner - wybrane osiedle
+// Banner – pełna szerokość do max-width i zaokrąglenie rogów
 const Banner = styled.div`
-	width: 1400px;
+	width: 100%;
+	max-width: 1360px;
 	padding: 20px;
-	position: absolute;
-	top: 0;
-	left: 0;
 	background: #ffd100;
 	border-radius: 20px;
 	display: flex;
@@ -24,7 +27,6 @@ const Banner = styled.div`
 
 const BannerContent = styled.div`
 	display: flex;
-	flex-direction: row;
 	align-items: center;
 	gap: 33px;
 `;
@@ -85,11 +87,9 @@ const BannerIcon = styled.img`
 
 // Główna karta
 const Card = styled.div`
-	width: 1400px;
+	width: 100%;
+	max-width: 1360px;
 	padding: 20px;
-	position: absolute;
-	top: 180px;
-	left: 0;
 	background: #fff;
 	border-radius: 10px;
 	display: flex;
@@ -97,7 +97,7 @@ const Card = styled.div`
 	gap: 30px;
 `;
 
-// Sekcja nagłówka + edycji
+// Nagłówek karty + przycisk edycji
 const CardHeaderRow = styled.div`
 	display: flex;
 	justify-content: space-between;
@@ -136,7 +136,6 @@ const FormSection = styled.div`
 	padding: 20px;
 	display: flex;
 	flex-direction: column;
-	align-items: flex-end;
 	gap: 20px;
 `;
 
@@ -158,9 +157,7 @@ const FieldLabelRow = styled.div`
 	display: flex;
 	align-items: center;
 	gap: 10px;
-	padding-top: 5px;
-	padding-bottom: 5px;
-	padding-right: 10px;
+	padding: 5px 10px 5px 0;
 `;
 
 const FieldIcon = styled.img`
@@ -194,13 +191,6 @@ const FieldValue = styled.span`
 	letter-spacing: 0.5px;
 `;
 
-// Rząd dla bank + czynsz + ilość mieszkań
-const FieldsRow3 = styled.div`
-	width: 100%;
-	display: flex;
-	gap: 35px;
-`;
-
 const HalfWidthColumn = styled.div`
 	flex: 1 1 0;
 	display: flex;
@@ -208,7 +198,7 @@ const HalfWidthColumn = styled.div`
 	gap: 5px;
 `;
 
-// Sekcja weryfikacji nagłówek + przycisk
+// Sekcja weryfikacji
 const VerifyHeaderRow = styled.div`
 	display: flex;
 	justify-content: space-between;
@@ -240,7 +230,6 @@ const VerifyButton = styled.button`
 	}
 `;
 
-// Dokument + status
 const VerifySection = styled.div`
 	background: #f3f3f3;
 	border-radius: 10px;
@@ -281,9 +270,8 @@ const StatusValue = styled.span`
 export const YourEstate = () => {
 	return (
 		<Wrapper>
-			{/* Banner */}
 			<Banner>
-				<div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+				<div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
 					<BannerTitle>Wybrane osiedle</BannerTitle>
 					<BannerContent>
 						<BannerIcon
@@ -301,17 +289,13 @@ export const YourEstate = () => {
 				<BannerButton>Przełącz osiedle</BannerButton>
 			</Banner>
 
-			{/* Główna karta */}
 			<Card>
-				{/* Sekcja Dane Osiedla */}
 				<CardHeaderRow>
 					<CardTitle>Dane Osiedla</CardTitle>
 					<CardEditButton>Edytuj dane osiedla</CardEditButton>
 				</CardHeaderRow>
 
-				{/* Pola */}
 				<FormSection>
-					{/* rząd: nazwa osiedla */}
 					<FieldsRow>
 						<FieldColumn>
 							<FieldLabelRow>
@@ -327,7 +311,6 @@ export const YourEstate = () => {
 						</FieldColumn>
 					</FieldsRow>
 
-					{/* rząd: ulica, miasto, kod pocztowy */}
 					<FieldsRow>
 						<FieldColumn>
 							<FieldLabelRow>
@@ -367,7 +350,6 @@ export const YourEstate = () => {
 						</FieldColumn>
 					</FieldsRow>
 
-					{/* rząd: konto bankowe */}
 					<FieldsRow>
 						<FieldColumn>
 							<FieldLabelRow>
@@ -383,7 +365,6 @@ export const YourEstate = () => {
 						</FieldColumn>
 					</FieldsRow>
 
-					{/* rząd: czynsz, ilość mieszkań */}
 					<FieldsRow>
 						<HalfWidthColumn>
 							<FieldLabelRow>
@@ -412,7 +393,6 @@ export const YourEstate = () => {
 					</FieldsRow>
 				</FormSection>
 
-				{/* Sekcja Weryfikacji */}
 				<VerifyHeaderRow>
 					<VerifyTitle>Weryfikacja osiedla</VerifyTitle>
 					<VerifyButton>Zweryfikuj ponownie</VerifyButton>

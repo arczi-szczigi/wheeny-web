@@ -200,22 +200,22 @@ const menuItems = [
 	{
 		label: "Odpady",
 		icon: "/assets/sidebar/fi-rr-trash.svg",
-		path: "/dashboard/waste",
+		path: "/wastePanel",
 	},
 	{
 		label: "Grupa społecznościowa",
 		icon: "/assets/sidebar/meeting.svg",
-		path: "/dashboard/community",
+		path: "/socialGroup",
 	},
 	{
 		label: "Najemcy",
 		icon: "/assets/sidebar/users 2.svg",
-		path: "/dashboard/tenants",
+		path: "/residentsPanel",
 	},
 	{
 		label: "Dane osiedla",
 		icon: "/assets/sidebar/city 3.svg",
-		path: "/dashboard/data",
+		path: "/estateInfo",
 	},
 ];
 
@@ -223,22 +223,22 @@ const menuBottomItems = [
 	{
 		label: "Twoje osiedla",
 		icon: "/assets/sidebar/fi-rr-book.svg",
-		path: "/dashboard/myestates",
+		path: "/allEstates",
 	},
 	{
 		label: "Twoja organizacja",
 		icon: "/assets/sidebar/team-check 1.svg",
-		path: "/dashboard/org",
+		path: "/organisationInfo",
 	},
 	{
 		label: "Współpracownicy",
 		icon: "/assets/sidebar/team-check 1.svg",
-		path: "/dashboard/workers",
+		path: "/coworkers",
 	},
 	{
 		label: "Ustawienia",
 		icon: "/assets/sidebar/fi-rr-settings.svg",
-		path: "/dashboard/settings",
+		path: "/settingsPanel",
 	},
 ];
 
