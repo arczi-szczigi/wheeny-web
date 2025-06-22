@@ -1,5 +1,7 @@
+"use client";
 import React from "react";
 import styled from "styled-components";
+import { useMain } from "@/context/EstateContext";
 
 const Row = styled.div`
 	display: flex;
@@ -122,15 +124,55 @@ const ICONS = [
 	{ color: "#E1F1FF", icon: "/assets/panelEstate/delete.svg" }, // błękit
 ];
 
-const VALUES = [
-	{ value: 12, desc: "Nowych wiadomości\nod mieszkańców" },
-	{ value: 7, desc: "Nowe zgłoszenia\nod mieszkańców" },
-	{ value: 8, desc: "Zgłoszeń\nw trakcie" },
-	{ value: 40, desc: "Zamkniętych zgłoszeń" },
-];
-
 export default function TopPanelChooseEstate() {
 	const today = new Date();
+
+	const {
+		organisations,
+		selectedOrganisationId,
+		selectedEstateId,
+		// możesz dołożyć tickets jak potrzebujesz
+	} = useMain();
+
+	// Znajdź wybraną firmę i wybrane osiedle
+	const selectedOrganisation = organisations.find(
+		org => org._id === selectedOrganisationId
+	);
+	const estates = selectedOrganisation?.estates ?? [];
+	const selectedEstate = estates.find(e => e._id === selectedEstateId);
+
+	// Przykładowe statystyki – tu możesz dopiąć logikę pod swoje dane
+	const newMessages = 0; // <-- tu możesz podpiąć liczenie wiadomości, jeśli masz
+	const newTickets = 0; // <-- podaj liczbę zgłoszeń "open" jeśli masz
+	const inProgress = 0; // <-- zgłoszenia w trakcie, jeśli masz
+	const closed = 0; // <-- zamknięte zgłoszenia, jeśli masz
+
+	// Jeśli masz tickets w context, możesz zrobić coś takiego:
+	// const { tickets } = useMain();
+	// const newTickets = tickets.filter(t => t.estate === selectedEstateId && t.status === "open").length;
+
+	const VALUES = [
+		{ value: newMessages, desc: "Nowych wiadomości\nod mieszkańców" },
+		{ value: newTickets, desc: "Nowe zgłoszenia\nod mieszkańców" },
+		{ value: inProgress, desc: "Zgłoszeń\nw trakcie" },
+		{ value: closed, desc: "Zamkniętych zgłoszeń" },
+	];
+
+	// Ładowanie (jeśli nie ma wybranego osiedla lub nie ma danych)
+	if (!selectedEstateId || estates.length === 0) {
+		return (
+			<Row>
+				<StatBox>
+					<StatNumber>...</StatNumber>
+					<StatLabel>Ładowanie danych osiedla...</StatLabel>
+				</StatBox>
+				<CalendarBox>
+					<CalendarLabel>Dziś mamy:</CalendarLabel>
+					<CalendarDate>{formatPolishDate(today)}</CalendarDate>
+				</CalendarBox>
+			</Row>
+		);
+	}
 
 	return (
 		<Row>

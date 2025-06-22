@@ -9,10 +9,10 @@ import EstateCalendar from "@/components/selectedEstatePanel/Calendar";
 import ContactsBox from "@/components/selectedEstatePanel/ContactsBox";
 import { useEffect, useState } from "react";
 
-const MAX_WIDTH = 1080;
-const RIGHT_COL_WIDTH = 240;
-const GAP = 16;
-const WIDGETS_GAP = 12;
+const MAX_WIDTH = 1400; // szerokość całości
+const GAP = 20; // odstęp między kolumnami
+const LEFT_COL = 900; // lewa kolumna (nie więcej!)
+const RIGHT_COL = 400; // prawa kolumna
 
 export default function StartPage() {
 	const [isMobile, setIsMobile] = useState(false);
@@ -39,105 +39,58 @@ export default function StartPage() {
 				<div
 					style={{
 						width: "100%",
-						maxWidth: `${MAX_WIDTH}px`,
+						maxWidth: MAX_WIDTH,
 						margin: "0 auto",
 						minHeight: "100vh",
 						display: "flex",
 						flexDirection: "column",
-						paddingTop: isMobile ? 10 : 16,
-						paddingBottom: isMobile ? 10 : 16,
+						padding: isMobile ? 8 : 20,
+						boxSizing: "border-box",
 					}}>
 					{/* HelloTop */}
-					<div style={{ padding: isMobile ? "0 0 8px 0" : "0 0 12px 0" }}>
+					<div style={{ paddingBottom: isMobile ? 8 : 16 }}>
 						<HelloTop />
 					</div>
 
-					{/* Sekcje główne */}
+					{/* Main Content Section */}
 					<div
 						style={{
-							display: "flex",
-							flexDirection: isMobile ? "column" : "row",
+							display: isMobile ? "block" : "grid",
+							gridTemplateColumns: isMobile
+								? undefined
+								: `${LEFT_COL}px ${RIGHT_COL}px`,
 							gap: isMobile ? 8 : GAP,
 							width: "100%",
-							alignItems: "flex-start",
-							minWidth: 0,
+							alignItems: "start",
 							boxSizing: "border-box",
 						}}>
 						{/* Lewa kolumna */}
 						<div
 							style={{
-								flex: 1,
-								minWidth: 0,
+								width: "100%",
+								maxWidth: isMobile ? "100%" : LEFT_COL,
+								margin: "0 auto",
 								display: "flex",
 								flexDirection: "column",
-								gap: isMobile ? 8 : GAP,
+								gap: isMobile ? 10 : 16,
 							}}>
-							<div
-								style={{
-									width: "100%",
-									minHeight: 70,
-									padding: "14px 18px",
-									fontSize: 15,
-									background: "transparent",
-									boxSizing: "border-box",
-								}}>
-								<SelectedEstate />
-							</div>
-							<div
-								style={{
-									width: "100%",
-									minHeight: 70,
-									maxHeight: 170,
-									padding: "14px 18px",
-									fontSize: 14,
-									background: "transparent",
-									boxSizing: "border-box",
-								}}>
-								<EventsInfoBox />
-							</div>
-							<div
-								style={{
-									width: "100%",
-									minHeight: 70,
-									padding: "10px 14px",
-									fontSize: 14,
-									gap: WIDGETS_GAP,
-									background: "transparent",
-									boxSizing: "border-box",
-								}}>
-								<WidgetsBox />
-							</div>
+							<SelectedEstate />
+							<EventsInfoBox />
+							<WidgetsBox />
 						</div>
 
 						{/* Prawa kolumna */}
 						<div
 							style={{
-								width: isMobile ? "100%" : `${RIGHT_COL_WIDTH}px`,
-								minWidth: isMobile ? "0" : `${RIGHT_COL_WIDTH}px`,
+								width: "100%",
+								maxWidth: isMobile ? "100%" : RIGHT_COL,
+								margin: "0 auto",
 								display: "flex",
 								flexDirection: "column",
-								gap: isMobile ? 8 : GAP,
+								gap: isMobile ? 10 : 16,
 							}}>
-							<div
-								style={{
-									minHeight: 70,
-									padding: "10px 10px",
-									fontSize: 14,
-									background: "transparent",
-									boxSizing: "border-box",
-								}}>
-								<EstateCalendar />
-							</div>
-							<div
-								style={{
-									minHeight: 70,
-									padding: "10px 10px",
-									fontSize: 14,
-									background: "transparent",
-									boxSizing: "border-box",
-								}}>
-								<ContactsBox />
-							</div>
+							<EstateCalendar />
+							<ContactsBox />
 						</div>
 					</div>
 				</div>

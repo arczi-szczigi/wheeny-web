@@ -1,12 +1,15 @@
 "use client";
+import { useState } from "react";
 import { Sidebar } from "@/components/Sidebar";
 import styled from "styled-components";
 import SearchBarPanelEstate from "@/components/panelEstate/SearchBarPanelEstate";
 import { CardEstate } from "@/components/panelEstate/CardEstate";
-import { useEstates } from "@/context/EstateContext";
+import { useMain } from "@/context/EstateContext";
 import { HelloTop } from "@/components/top/HelloTop";
-import TopPanelChooseEstate from "@/components/panelEstate/TopPanelChooseEstate"; // <--- importujesz!
+import TopPanelChooseEstate from "@/components/panelEstate/TopPanelChooseEstate";
+import AddEstateModal from "@/components/modal/AddEstateModal";
 
+// === STYLE ===
 const PageWrapper = styled.div`
 	display: flex;
 	height: 100vh;
@@ -30,6 +33,7 @@ const PageContent = styled.div`
 	background: #e7e7e7;
 	height: 100vh;
 	overflow-y: auto;
+	position: relative;
 `;
 
 const MainColumn = styled.div`
@@ -48,22 +52,70 @@ const TopBar = styled.div`
 	justify-content: center;
 `;
 
+const CenterSuccessBox = styled.div`
+	position: fixed;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+	background: #ffd100;
+	color: #232323;
+	font-size: 22px;
+	font-weight: 700;
+	padding: 38px 56px;
+	border-radius: 20px;
+	box-shadow: 0 0 24px rgba(255, 209, 0, 0.17);
+	z-index: 3000;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	text-align: center;
+	animation: fadeIn 0.2s;
+	@keyframes fadeIn {
+		from {
+			opacity: 0;
+			transform: translate(-50%, -48%);
+		}
+		to {
+			opacity: 1;
+			transform: translate(-50%, -50%);
+		}
+	}
+`;
+
 export default function PanelEstatePage() {
 	const {
-		estates,
-		tickets,
+		organisations,
+		selectedOrganisationId,
 		selectedEstateId,
 		setSelectedEstateId,
 		loading,
 		error,
-	} = useEstates();
+		reload,
+	} = useMain();
 
-	const getTicketsCount = (estateId: string) =>
-		tickets.filter(t => t.estate === estateId).length;
+	const [modalOpen, setModalOpen] = useState(false);
+	const [showSuccess, setShowSuccess] = useState(false);
+	const [pendingListUpdate, setPendingListUpdate] = useState(false);
 
-	const getInProgressCount = (estateId: string) =>
-		tickets.filter(t => t.estate === estateId && t.status === "in_progress")
-			.length;
+	const token =
+		typeof window !== "undefined" ? localStorage.getItem("token") || "" : "";
+
+	const selectedOrganisation = organisations.find(
+		org => org._id === selectedOrganisationId
+	);
+
+	const estates = selectedOrganisation?.estates ?? [];
+
+	const handleEstateSuccess = async () => {
+		setModalOpen(false);
+		setShowSuccess(true);
+		setPendingListUpdate(true);
+		await reload();
+		setTimeout(() => {
+			setShowSuccess(false);
+			setPendingListUpdate(false);
+		}, 1500);
+	};
 
 	return (
 		<PageWrapper>
@@ -72,38 +124,69 @@ export default function PanelEstatePage() {
 			</SidebarWrapper>
 			<PageContent>
 				<MainColumn>
-					{/* HelloTop */}
 					<TopBar style={{ margin: "32px 0 0 0" }}>
 						<HelloTop />
 					</TopBar>
-					{/* TopPanelChooseEstate */}
 					<TopBar style={{ margin: "8px 0" }}>
 						<TopPanelChooseEstate />
 					</TopBar>
-					{/* SearchBarPanelEstate */}
 					<TopBar style={{ margin: "8px 0 8px 0" }}>
-						<SearchBarPanelEstate />
+						<SearchBarPanelEstate onAddClick={() => setModalOpen(true)} />
 					</TopBar>
-					{loading && <div>Ładowanie osiedli...</div>}
-					{error && <div style={{ color: "red" }}>Błąd: {error}</div>}
-					{estates.map(estate => (
-						<CardEstate
-							key={estate._id}
-							estate={{
-								name: estate.name,
-								city: estate.address.city,
-								zipCode: estate.address.zipCode,
-								street: estate.address.street,
-								buildingNumber: estate.address.buildingNumber,
-								residentsCount: estate.numberOfFlats,
-								newMessages: 12,
-								newTickets: getTicketsCount(estate._id),
-								inProgress: getInProgressCount(estate._id),
-							}}
-							onSelect={() => setSelectedEstateId(estate._id)}
-							isSelected={selectedEstateId === estate._id}
-						/>
-					))}
+					<AddEstateModal
+						open={modalOpen}
+						onClose={() => setModalOpen(false)}
+						token={token}
+						onSuccess={handleEstateSuccess}
+					/>
+					{showSuccess && (
+						<CenterSuccessBox>
+							✅ Osiedle zostało dodane
+							<br />
+							Dziękujemy!
+						</CenterSuccessBox>
+					)}
+					{pendingListUpdate ? (
+						<div
+							style={{
+								marginTop: 70,
+								textAlign: "center",
+								fontSize: 18,
+								color: "#888",
+							}}>
+							Odświeżam listę osiedli...
+						</div>
+					) : (
+						<>
+							{loading && <div>Ładowanie osiedli...</div>}
+							{error && <div style={{ color: "red" }}>Błąd: {error}</div>}
+							{estates.length === 0 && (
+								<div
+									style={{ color: "#aaa", marginTop: 32, textAlign: "center" }}>
+									Brak osiedli przypisanych do tej firmy.
+								</div>
+							)}
+							{estates.map(estate => (
+								<CardEstate
+									key={estate._id}
+									estate={{
+										id: estate._id,
+										name: estate.name,
+										city: estate.address.city,
+										zipCode: estate.address.zipCode,
+										street: estate.address.street,
+										buildingNumber: estate.address.buildingNumber,
+										residentsCount: estate.numberOfFlats,
+										newMessages: 0,
+										newTickets: 0,
+										inProgress: 0,
+									}}
+									onSelect={() => setSelectedEstateId(estate._id)}
+									isSelected={selectedEstateId === estate._id}
+								/>
+							))}
+						</>
+					)}
 				</MainColumn>
 			</PageContent>
 		</PageWrapper>

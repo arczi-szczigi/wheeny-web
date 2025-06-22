@@ -7,11 +7,17 @@ import styled from "styled-components";
 const Wrapper = styled.div`
 	width: 100%;
 	background: #f4f4f4;
-	padding: 32px 0 40px 0;
+	padding: 24px 0 32px 0;
+
+	@media (max-width: 600px) {
+		padding: 8px 0 12px 0;
+	}
 `;
 
 const Content = styled.div`
-	width: 800px; // szeroko jak na figmie!
+	width: 100%;
+	max-width: 800px;
+	margin: 0 auto;
 `;
 
 const TitleRow = styled.div`
@@ -47,12 +53,12 @@ const WidgetCard = styled.div`
 	box-shadow: 1px 1px 10px rgba(0, 0, 0, 0.04);
 	display: flex;
 	align-items: center;
-	min-height: 230px; // wyższe boxy!
+	min-height: 230px;
 	padding: 0;
 `;
 
 const WidgetArt = styled.div`
-	flex: 0 0 43%; // dużo miejsca na grafikę!
+	flex: 0 0 43%;
 	height: 230px;
 	display: flex;
 	align-items: center;
@@ -62,7 +68,7 @@ const WidgetArt = styled.div`
 
 const WidgetContent = styled.div`
 	flex: 1;
-	padding: 0 38px 0 0; // tekst przesunięty bardziej w prawo
+	padding: 0 38px 0 0;
 	display: flex;
 	flex-direction: column;
 	justify-content: center;

@@ -1,59 +1,12 @@
 import React, { useState } from "react";
+import { useMain } from "@/context/EstateContext";
 import styled from "styled-components";
-// Ikony PNG
-// Wrzucaj ścieżki do plików png do public/assets/advancePayment/
-
-const Container = styled.div`
-	width: 100vw;
-	min-height: 100vh;
-	background: #f5f5f5;
-	display: flex;
-	flex-direction: column;
-	align-items: flex-start;
-	justify-content: flex-start;
-`;
-
-const MainPanel = styled.div`
-	width: 1400px;
-	margin: 42px auto 0 auto;
-	background: #fdfdfd;
-	border-top-left-radius: 20px;
-	border-top-right-radius: 20px;
-	box-shadow: 0px 2px 24px 0px #2828280a;
-	display: flex;
-	flex-direction: column;
-	padding: 30px 20px 30px 20px;
-	gap: 10px;
-`;
-
-const Header = styled.div`
-	display: flex;
-	flex-direction: column;
-	gap: 3px;
-	padding-left: 12px;
-`;
-
-const Title = styled.span`
-	color: black;
-	font-size: 30px;
-	font-family: Roboto, sans-serif;
-	font-weight: 400;
-	letter-spacing: 1.5px;
-`;
-
-const SubTitle = styled.span`
-	color: #9d9d9d;
-	font-size: 10px;
-	font-family: Roboto, sans-serif;
-	font-weight: 400;
-	letter-spacing: 0.5px;
-	margin-top: 2px;
-`;
 
 const TabsWrapper = styled.div`
 	display: flex;
 	gap: 14px;
 	margin-top: 26px;
+	padding: 0 0 0 0;
 `;
 
 const TabButton = styled.div<{ active?: boolean }>`
@@ -62,8 +15,7 @@ const TabButton = styled.div<{ active?: boolean }>`
 	border-radius: 10px;
 	display: flex;
 	align-items: center;
-	gap: 10px;
-	padding: 0 18px;
+	justify-content: center;
 	font-family: Roboto, sans-serif;
 	font-size: 12px;
 	letter-spacing: 0.6px;
@@ -102,12 +54,12 @@ const InputWrapper = styled.div`
 	display: flex;
 	align-items: center;
 	height: 40px;
-	width: 400px;
+	width: 340px;
 	background: #fff;
 	border-radius: 30px;
 	box-shadow: 1px 1px 10px rgba(0, 0, 0, 0.02);
 	border: 0.5px solid #d9d9d9;
-	padding: 0 20px;
+	padding: 0 18px;
 	gap: 10px;
 `;
 
@@ -121,37 +73,10 @@ const Input = styled.input`
 	width: 100%;
 `;
 
-const GrayButton = styled.button`
-	display: flex;
-	align-items: center;
-	gap: 7px;
-	height: 40px;
-	background: #f3f3f3;
-	border-radius: 30px;
-	border: none;
-	font-family: Roboto, sans-serif;
-	font-size: 12px;
-	color: #9d9d9d;
-	font-weight: 400;
-	letter-spacing: 0.6px;
-	padding: 0 23px;
-	cursor: pointer;
-	box-shadow: 1px 1px 10px rgba(0, 0, 0, 0.02);
-`;
-
-const TableWrapper = styled.div`
-	margin-top: 20px;
-	width: 100%;
-	background: #f3f3f3;
-	border-radius: 10px;
-	padding: 15px 10px 15px 10px;
-`;
-
 const Table = styled.div`
 	width: 100%;
 	display: flex;
 	flex-direction: column;
-	gap: 0px;
 `;
 
 const TableHeader = styled.div`
@@ -165,7 +90,6 @@ const TableHeader = styled.div`
 	font-weight: 500;
 	color: #9d9d9d;
 	letter-spacing: 0.5px;
-	background: transparent;
 `;
 
 const Th = styled.div`
@@ -212,219 +136,89 @@ const EditButton = styled.button`
 	margin-left: 8px;
 `;
 
-// Komponent renderowany po przełączeniu taba "Aktualne saldo mieszkańców"
-const ExampleSaldoRow = styled.div`
-	width: 1340px;
-	height: 44px;
-	padding-left: 10px;
-	padding-right: 10px;
-	background: white;
-	border-radius: 10px;
-	display: flex;
-	align-items: center;
-	gap: 44px;
-	margin-bottom: 8px;
-`;
-const SaldoContent = () => (
-	<ExampleSaldoRow>
-		<div style={{ flex: 1, display: "flex", gap: 15, alignItems: "center" }}>
-			<span
-				style={{
-					color: "#202020",
-					fontSize: 10,
-					fontFamily: "Roboto",
-					fontWeight: 500,
-					letterSpacing: 0.5,
-				}}>
-				m.1
-			</span>
-			<span
-				style={{
-					color: "#202020",
-					fontSize: 10,
-					fontFamily: "Roboto",
-					fontWeight: 500,
-					letterSpacing: 0.5,
-				}}>
-				0 zł
-			</span>
-		</div>
-		<div
-			style={{
-				padding: "9px 20px",
-				background: "#D9D9D9",
-				borderRadius: 30,
-				fontSize: 10,
-				fontFamily: "Roboto",
-				fontWeight: 400,
-				letterSpacing: 0.5,
-				color: "#202020",
-			}}>
-			Edytuj dane
-		</div>
-	</ExampleSaldoRow>
-);
-
-const rows = [
-	{
-		mieszkanie: "m.1",
-		kwota: "825 zł",
-		konto: "49 1020 2892 2276 3005 0000 0000",
-	},
-	{
-		mieszkanie: "m.2",
-		kwota: "760 zł",
-		konto: "49 1020 2892 2276 3005 0000 0000",
-	},
-	{
-		mieszkanie: "m.3",
-		kwota: "760 zł",
-		konto: "49 1020 2892 2276 3005 0000 0000",
-	},
-	{
-		mieszkanie: "m.4",
-		kwota: "945 zł",
-		konto: "49 1020 2892 2276 3005 0000 0000",
-	},
-	{
-		mieszkanie: "m.5",
-		kwota: "760 zł",
-		konto: "49 1020 2892 2276 3005 0000 0000",
-	},
-	{
-		mieszkanie: "m.6",
-		kwota: "825 zł",
-		konto: "49 1020 2892 2276 3005 0000 0000",
-	},
-	{
-		mieszkanie: "m.7",
-		kwota: "780 zł",
-		konto: "49 1020 2892 2276 3005 0000 0000",
-	},
-	{
-		mieszkanie: "m.8",
-		kwota: "790 zł",
-		konto: "49 1020 2892 2276 3005 0000 0000",
-	},
-	{
-		mieszkanie: "m.9",
-		kwota: "945 zł",
-		konto: "49 1020 2892 2276 3005 0000 0000",
-	},
-	{
-		mieszkanie: "m.10",
-		kwota: "945 zł",
-		konto: "49 1020 2892 2276 3005 0000 0000",
-	},
-	{
-		mieszkanie: "m.11",
-		kwota: "825 zł",
-		konto: "49 1020 2892 2276 3005 0000 0000",
-		faded: true,
-	},
-];
-
 export default function AdvancePaymentList() {
-	const [activeTab, setActiveTab] = useState(0); // 0 = czynsz, 1 = saldo
+	const [activeTab, setActiveTab] = useState(0); // 0 = zaliczki, 1 = saldo
+	const [search, setSearch] = useState("");
+
+	const { payments, balances, loading, error, selectedEstateId } = useMain();
+
+	if (!selectedEstateId) return <div>Wybierz osiedle!</div>;
+	if (loading) return <div>Ładowanie danych...</div>;
+	if (error) return <div style={{ color: "red" }}>Błąd: {error}</div>;
+
+	const filteredPayments = payments.filter(
+		p =>
+			p.estateId === selectedEstateId &&
+			p.flatNumber.toLowerCase().includes(search.toLowerCase())
+	);
+	const filteredBalances = balances.filter(
+		b =>
+			b.estateId === selectedEstateId &&
+			b.flatNumber.toLowerCase().includes(search.toLowerCase())
+	);
+
 	return (
-		<Container>
-			<MainPanel>
-				<Header>
-					<Title>Rozliczenia osiedla</Title>
-					<SubTitle>
-						Tutaj ustalasz ogólne stawki na podstawie których system oblicza
-						miesięczną zaliczkę dla każdego lokalu i wyświetla ją w aplikacji
-						mobilnej mieszkańców.
-					</SubTitle>
-				</Header>
-				<TabsWrapper>
-					<TabButton active={activeTab === 0} onClick={() => setActiveTab(0)}>
-						<img
-							src='/assets/advancePayment/list.png'
-							width={15}
-							height={15}
-							alt='plus'
-						/>
-						Miesięczne zaliczki mieszkańców – czynsz
-					</TabButton>
-					<TabButton active={activeTab === 1} onClick={() => setActiveTab(1)}>
-						<img
-							src='/assets/advancePayment/list.png'
-							width={15}
-							height={15}
-							alt='plus'
-						/>
-						Aktualne saldo mieszkańców
-					</TabButton>
-				</TabsWrapper>
-				<ControlsBar>
-					<ButtonYellow>
-						<img
-							src='/assets/advancePayment/plus.png'
-							width={15}
-							height={15}
-							alt='plus'
-						/>
-						Dodaj/Edytuj kwoty zaliczek
-					</ButtonYellow>
-					<InputWrapper>
-						<img
-							src='/assets/advancePayment/search.png'
-							width={15}
-							height={15}
-							alt='search'
-						/>
-						<Input placeholder='Wyszukaj mieszkańca' />
-					</InputWrapper>
-					<GrayButton>
-						<img
-							src='/assets/advancePayment/filter.png'
-							width={20}
-							height={20}
-							alt='filter'
-						/>
-						Filtrowanie
-					</GrayButton>
-					<GrayButton>
-						<img
-							src='/assets/advancePayment/filter.png'
-							width={20}
-							height={20}
-							alt='sort'
-						/>
-						Sortowanie
-					</GrayButton>
-				</ControlsBar>
-				<TableWrapper>
-					{activeTab === 0 ? (
-						<Table>
-							<TableHeader>
-								<Th>Mieszkanie</Th>
-								<Th>Kwota czynszu</Th>
-								<Th>Nr konta</Th>
-								<Th></Th>
-							</TableHeader>
-							{rows.map((row, i) => (
-								<TableRow key={i} faded={row.faded}>
-									<Td>{row.mieszkanie}</Td>
-									<Td>{row.kwota}</Td>
-									<Td>{row.konto}</Td>
-									<Td style={{ display: "flex", justifyContent: "flex-end" }}>
-										<EditButton disabled={row.faded}>Edytuj dane</EditButton>
-									</Td>
-								</TableRow>
-							))}
-						</Table>
-					) : (
-						// Renderujemy przykładową linijkę z figmy:
-						<>
-							<SaldoContent />
-							<SaldoContent />
-							<SaldoContent />
-						</>
-					)}
-				</TableWrapper>
-			</MainPanel>
-		</Container>
+		<>
+			<TabsWrapper>
+				<TabButton active={activeTab === 0} onClick={() => setActiveTab(0)}>
+					Miesięczne zaliczki mieszkańców – czynsz
+				</TabButton>
+				<TabButton active={activeTab === 1} onClick={() => setActiveTab(1)}>
+					Aktualne saldo mieszkańców
+				</TabButton>
+			</TabsWrapper>
+			<ControlsBar>
+				<ButtonYellow>
+					{activeTab === 0
+						? "Dodaj/Edytuj kwoty zaliczek"
+						: "Dodaj/Edytuj kwoty salda"}
+				</ButtonYellow>
+				<InputWrapper>
+					<Input
+						placeholder='Wyszukaj mieszkanie'
+						value={search}
+						onChange={e => setSearch(e.target.value)}
+					/>
+				</InputWrapper>
+			</ControlsBar>
+
+			{activeTab === 0 ? (
+				<Table>
+					<TableHeader>
+						<Th>Mieszkanie</Th>
+						<Th>Kwota czynszu</Th>
+						<Th>Nr konta</Th>
+						<Th />
+					</TableHeader>
+					{filteredPayments.map(row => (
+						<TableRow key={row._id}>
+							<Td>{row.flatNumber}</Td>
+							<Td>{row.amount} zł</Td>
+							<Td>{row.bankAccount}</Td>
+							<Td style={{ display: "flex", justifyContent: "flex-end" }}>
+								<EditButton>Edytuj dane</EditButton>
+							</Td>
+						</TableRow>
+					))}
+				</Table>
+			) : (
+				<Table>
+					<TableHeader>
+						<Th>Mieszkanie</Th>
+						<Th>Saldo</Th>
+						<Th />
+					</TableHeader>
+					{filteredBalances.map(row => (
+						<TableRow key={row._id}>
+							<Td>{row.flatNumber}</Td>
+							<Td>{row.amount} zł</Td>
+							<Td style={{ display: "flex", justifyContent: "flex-end" }}>
+								<EditButton>Edytuj saldo</EditButton>
+							</Td>
+						</TableRow>
+					))}
+				</Table>
+			)}
+		</>
 	);
 }

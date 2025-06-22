@@ -23,16 +23,22 @@ const MONTHS = [
 ];
 
 const CalendarWrapper = styled.div`
-	width: 556px;
-	height: 299px;
+	width: 100%;
+	max-width: 400px;
+	min-height: 220px;
 	background: white;
 	box-shadow: 1px 1px 10px rgba(0, 0, 0, 0.02);
 	border-radius: 10px;
 	position: relative;
-	padding: 32px 32px 28px 32px;
+	padding: 24px 12px 16px 12px;
 	display: flex;
 	flex-direction: column;
 	justify-content: flex-start;
+	box-sizing: border-box;
+
+	@media (max-width: 600px) {
+		padding: 8px 2px 8px 2px;
+	}
 `;
 
 const Header = styled.div`

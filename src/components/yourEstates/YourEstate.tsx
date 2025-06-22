@@ -2,18 +2,19 @@
 
 import React from "react";
 import styled from "styled-components";
+import { useMain } from "@/context/EstateContext";
+import type { Estate } from "@/context/EstateContext";
 
-// Kontenery i layouty – teraz wrapper centruje zawartość
+// Kontenery i layouty
 const Wrapper = styled.div`
 	width: 100%;
 	display: flex;
 	flex-direction: column;
-	align-items: center; /* centrowanie w poziomie */
-	gap: 32px; /* odstęp między bannerem a kartą */
-	padding-bottom: 40px; /* opcjonalny dół, żeby nie przyklejało się przy przewijaniu */
+	align-items: center;
+	gap: 32px;
+	padding-bottom: 40px;
 `;
 
-// Banner – pełna szerokość do max-width i zaokrąglenie rogów
 const Banner = styled.div`
 	width: 100%;
 	max-width: 1360px;
@@ -85,7 +86,6 @@ const BannerIcon = styled.img`
 	object-fit: contain;
 `;
 
-// Główna karta
 const Card = styled.div`
 	width: 100%;
 	max-width: 1360px;
@@ -97,7 +97,6 @@ const Card = styled.div`
 	gap: 30px;
 `;
 
-// Nagłówek karty + przycisk edycji
 const CardHeaderRow = styled.div`
 	display: flex;
 	justify-content: space-between;
@@ -129,7 +128,6 @@ const CardEditButton = styled.button`
 	}
 `;
 
-// Formularz danych osiedla
 const FormSection = styled.div`
 	background: #f3f3f3;
 	border-radius: 10px;
@@ -198,7 +196,6 @@ const HalfWidthColumn = styled.div`
 	gap: 5px;
 `;
 
-// Sekcja weryfikacji
 const VerifyHeaderRow = styled.div`
 	display: flex;
 	justify-content: space-between;
@@ -264,167 +261,214 @@ const StatusValue = styled.span`
 	letter-spacing: 0.5px;
 `;
 
-// ---------------------------
-// GŁÓWNY KOMPONENT
-// ---------------------------
-export const YourEstate = () => {
+function formatAddress(estate: Estate | null) {
+	if (!estate || !estate.address) return "";
+	const a = estate.address;
+	return [a.street, a.buildingNumber ? a.buildingNumber : "", a.zipCode, a.city]
+		.filter(Boolean)
+		.join(", ");
+}
+
+export const YourEstate: React.FC = () => {
+	const { organisations, selectedEstateId, loading, error, documents } =
+		useMain();
+
+	// Pobierz wszystkie osiedla z organizacji i znajdź wybrane po id
+	const estates: Estate[] = organisations.flatMap(org => org.estates || []);
+	const estate: Estate | null =
+		(estates.find((e: Estate) => e._id === selectedEstateId) as Estate) ||
+		(estates[0] as Estate) ||
+		null;
+
+	const verifyDocument =
+		documents && documents.length > 0
+			? documents[0].originalName
+			: "Brak dokumentu";
+
 	return (
 		<Wrapper>
-			<Banner>
-				<div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-					<BannerTitle>Wybrane osiedle</BannerTitle>
-					<BannerContent>
-						<BannerIcon
-							src='/assets/yourEstate/building.png'
-							alt='ikona budynku'
-						/>
-						<BannerInfo>
-							<BannerName>Osiedle słoneczne</BannerName>
-							<BannerAddress>
-								ul. Jerozolimskie 44, 01-345 Warszawa
-							</BannerAddress>
-						</BannerInfo>
-					</BannerContent>
-				</div>
-				<BannerButton>Przełącz osiedle</BannerButton>
-			</Banner>
-
-			<Card>
-				<CardHeaderRow>
-					<CardTitle>Dane Osiedla</CardTitle>
-					<CardEditButton>Edytuj dane osiedla</CardEditButton>
-				</CardHeaderRow>
-
-				<FormSection>
-					<FieldsRow>
-						<FieldColumn>
-							<FieldLabelRow>
-								<FieldIcon
-									src='/assets/yourEstate/building2.svg'
+			{loading ? (
+				<Card>
+					<FieldValue>Ładowanie danych osiedla...</FieldValue>
+				</Card>
+			) : error ? (
+				<Card>
+					<FieldValue>Błąd: {error}</FieldValue>
+				</Card>
+			) : !estate ? (
+				<Card>
+					<FieldValue>Brak wybranego osiedla.</FieldValue>
+				</Card>
+			) : (
+				<>
+					<Banner>
+						<div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+							<BannerTitle>Wybrane osiedle</BannerTitle>
+							<BannerContent>
+								<BannerIcon
+									src='/assets/yourEstate/building.png'
 									alt='ikona budynku'
 								/>
-								<FieldLabel>Nazwa osiedla</FieldLabel>
-							</FieldLabelRow>
-							<FieldValueBox>
-								<FieldValue>NAZWA OSIEDLA</FieldValue>
-							</FieldValueBox>
-						</FieldColumn>
-					</FieldsRow>
+								<BannerInfo>
+									<BannerName>{estate.name}</BannerName>
+									<BannerAddress>{formatAddress(estate)}</BannerAddress>
+								</BannerInfo>
+							</BannerContent>
+						</div>
+						<BannerButton>Przełącz osiedle</BannerButton>
+					</Banner>
 
-					<FieldsRow>
-						<FieldColumn>
-							<FieldLabelRow>
-								<FieldIcon
-									src='/assets/yourEstate/building2.svg'
-									alt='ikona budynku'
-								/>
-								<FieldLabel>Ulica</FieldLabel>
-							</FieldLabelRow>
-							<FieldValueBox>
-								<FieldValue>ULICA</FieldValue>
-							</FieldValueBox>
-						</FieldColumn>
-						<FieldColumn>
-							<FieldLabelRow>
-								<FieldIcon
-									src='/assets/yourEstate/building2.svg'
-									alt='ikona budynku'
-								/>
-								<FieldLabel>Miasto</FieldLabel>
-							</FieldLabelRow>
-							<FieldValueBox>
-								<FieldValue>MIASTO</FieldValue>
-							</FieldValueBox>
-						</FieldColumn>
-						<FieldColumn>
-							<FieldLabelRow>
-								<FieldIcon
-									src='/assets/yourEstate/building2.svg'
-									alt='ikona budynku'
-								/>
-								<FieldLabel>Kod pocztowy</FieldLabel>
-							</FieldLabelRow>
-							<FieldValueBox>
-								<FieldValue>KOD POCZTOWY</FieldValue>
-							</FieldValueBox>
-						</FieldColumn>
-					</FieldsRow>
+					<Card>
+						<CardHeaderRow>
+							<CardTitle>Dane Osiedla</CardTitle>
+							<CardEditButton>Edytuj dane osiedla</CardEditButton>
+						</CardHeaderRow>
 
-					<FieldsRow>
-						<FieldColumn>
-							<FieldLabelRow>
-								<FieldIcon
-									src='/assets/yourEstate/catalog.svg'
-									alt='ikona katalog'
-								/>
-								<FieldLabel>Nr głównego konta bankowego</FieldLabel>
-							</FieldLabelRow>
-							<FieldValueBox>
-								<FieldValue>NUMER KONTA BANKOWEGO</FieldValue>
-							</FieldValueBox>
-						</FieldColumn>
-					</FieldsRow>
+						<FormSection>
+							<FieldsRow>
+								<FieldColumn>
+									<FieldLabelRow>
+										<FieldIcon
+											src='/assets/yourEstate/building2.svg'
+											alt='ikona budynku'
+										/>
+										<FieldLabel>Nazwa osiedla</FieldLabel>
+									</FieldLabelRow>
+									<FieldValueBox>
+										<FieldValue>{estate.name || "-"}</FieldValue>
+									</FieldValueBox>
+								</FieldColumn>
+							</FieldsRow>
 
-					<FieldsRow>
-						<HalfWidthColumn>
-							<FieldLabelRow>
-								<FieldIcon
-									src='/assets/yourEstate/czynsz.svg'
-									alt='ikona czynsz'
-								/>
-								<FieldLabel>Czynsz płatny do</FieldLabel>
-							</FieldLabelRow>
-							<FieldValueBox>
-								<FieldValue>10 każdego miesiąca</FieldValue>
-							</FieldValueBox>
-						</HalfWidthColumn>
-						<HalfWidthColumn>
-							<FieldLabelRow>
-								<FieldIcon
-									src='/assets/yourEstate/residents.svg'
-									alt='ikona mieszkańcy'
-								/>
-								<FieldLabel>Ilość mieszkań</FieldLabel>
-							</FieldLabelRow>
-							<FieldValueBox>
-								<FieldValue>55</FieldValue>
-							</FieldValueBox>
-						</HalfWidthColumn>
-					</FieldsRow>
-				</FormSection>
+							<FieldsRow>
+								<FieldColumn>
+									<FieldLabelRow>
+										<FieldIcon
+											src='/assets/yourEstate/building2.svg'
+											alt='ikona budynku'
+										/>
+										<FieldLabel>Ulica</FieldLabel>
+									</FieldLabelRow>
+									<FieldValueBox>
+										<FieldValue>
+											{estate.address?.street || "-"}
+											{estate.address?.buildingNumber
+												? " " + estate.address?.buildingNumber
+												: ""}
+										</FieldValue>
+									</FieldValueBox>
+								</FieldColumn>
+								<FieldColumn>
+									<FieldLabelRow>
+										<FieldIcon
+											src='/assets/yourEstate/building2.svg'
+											alt='ikona budynku'
+										/>
+										<FieldLabel>Miasto</FieldLabel>
+									</FieldLabelRow>
+									<FieldValueBox>
+										<FieldValue>{estate.address?.city || "-"}</FieldValue>
+									</FieldValueBox>
+								</FieldColumn>
+								<FieldColumn>
+									<FieldLabelRow>
+										<FieldIcon
+											src='/assets/yourEstate/building2.svg'
+											alt='ikona budynku'
+										/>
+										<FieldLabel>Kod pocztowy</FieldLabel>
+									</FieldLabelRow>
+									<FieldValueBox>
+										<FieldValue>{estate.address?.zipCode || "-"}</FieldValue>
+									</FieldValueBox>
+								</FieldColumn>
+							</FieldsRow>
 
-				<VerifyHeaderRow>
-					<VerifyTitle>Weryfikacja osiedla</VerifyTitle>
-					<VerifyButton>Zweryfikuj ponownie</VerifyButton>
-				</VerifyHeaderRow>
+							<FieldsRow>
+								<FieldColumn>
+									<FieldLabelRow>
+										<FieldIcon
+											src='/assets/yourEstate/catalog.svg'
+											alt='ikona katalog'
+										/>
+										<FieldLabel>Nr głównego konta bankowego</FieldLabel>
+									</FieldLabelRow>
+									<FieldValueBox>
+										<FieldValue>{estate.bankAccountNumber || "-"}</FieldValue>
+									</FieldValueBox>
+								</FieldColumn>
+							</FieldsRow>
 
-				<VerifySection>
-					<VerifyCol>
-						<FieldLabelRow>
-							<FieldIcon
-								src='/assets/yourEstate/building2.svg'
-								alt='ikona budynku'
-							/>
-							<FieldLabel>Dokument weryfikujący osiedle</FieldLabel>
-						</FieldLabelRow>
-						<FieldValueBox>
-							<FieldValue>Umowa Osiedle Słoneczne.pdf</FieldValue>
-						</FieldValueBox>
-					</VerifyCol>
-					<VerifyCol>
-						<FieldLabelRow>
-							<FieldIcon
-								src='/assets/yourEstate/building2.svg'
-								alt='ikona budynku'
-							/>
-							<FieldLabel>Status</FieldLabel>
-						</FieldLabelRow>
-						<StatusBox>
-							<StatusValue>Zweryfikowane</StatusValue>
-						</StatusBox>
-					</VerifyCol>
-				</VerifySection>
-			</Card>
+							<FieldsRow>
+								<HalfWidthColumn>
+									<FieldLabelRow>
+										<FieldIcon
+											src='/assets/yourEstate/czynsz.svg'
+											alt='ikona czynsz'
+										/>
+										<FieldLabel>Czynsz płatny do</FieldLabel>
+									</FieldLabelRow>
+									<FieldValueBox>
+										<FieldValue>
+											{estate.rentDueDate
+												? `do ${estate.rentDueDate} każdego miesiąca`
+												: "-"}
+										</FieldValue>
+									</FieldValueBox>
+								</HalfWidthColumn>
+								<HalfWidthColumn>
+									<FieldLabelRow>
+										<FieldIcon
+											src='/assets/yourEstate/residents.svg'
+											alt='ikona mieszkańcy'
+										/>
+										<FieldLabel>Ilość mieszkań</FieldLabel>
+									</FieldLabelRow>
+									<FieldValueBox>
+										<FieldValue>
+											{typeof estate.numberOfFlats === "number"
+												? estate.numberOfFlats
+												: "-"}
+										</FieldValue>
+									</FieldValueBox>
+								</HalfWidthColumn>
+							</FieldsRow>
+						</FormSection>
+
+						<VerifyHeaderRow>
+							<VerifyTitle>Weryfikacja osiedla</VerifyTitle>
+							<VerifyButton>Zweryfikuj ponownie</VerifyButton>
+						</VerifyHeaderRow>
+
+						<VerifySection>
+							<VerifyCol>
+								<FieldLabelRow>
+									<FieldIcon
+										src='/assets/yourEstate/building2.svg'
+										alt='ikona budynku'
+									/>
+									<FieldLabel>Dokument weryfikujący osiedle</FieldLabel>
+								</FieldLabelRow>
+								<FieldValueBox>
+									<FieldValue>{verifyDocument}</FieldValue>
+								</FieldValueBox>
+							</VerifyCol>
+							<VerifyCol>
+								<FieldLabelRow>
+									<FieldIcon
+										src='/assets/yourEstate/building2.svg'
+										alt='ikona budynku'
+									/>
+									<FieldLabel>Status</FieldLabel>
+								</FieldLabelRow>
+								<StatusBox>
+									<StatusValue>Zweryfikowane</StatusValue>
+								</StatusBox>
+							</VerifyCol>
+						</VerifySection>
+					</Card>
+				</>
+			)}
 		</Wrapper>
 	);
 };

@@ -1,6 +1,11 @@
+"use client";
+
 import React from "react";
 import styled from "styled-components";
+import { useMain } from "@/context/EstateContext";
+import type { Organisation, Estate } from "@/context/EstateContext";
 
+// --- STYLES ---
 const Container = styled.div`
 	width: 100%;
 	max-width: 1400px;
@@ -20,7 +25,7 @@ const StatBox = styled.div`
 	position: relative;
 	background: white;
 	box-shadow: 1px 1px 10px rgba(0, 0, 0, 0.02);
-	border-radius: 32px;
+	border-radius: 18px;
 	flex: 1;
 	min-width: 260px;
 	height: 100px;
@@ -31,31 +36,28 @@ const StatBox = styled.div`
 	overflow: hidden;
 `;
 
-// ZAMIANA TYLKO TEGO FRAGMENTU NA WZÓR TWOJEGO DZIAŁAJĄCEGO PRZYKŁADU
 const QuarterCircleWrapper = styled.div`
 	position: absolute;
 	right: 0;
 	bottom: 0;
-	width: 80px;
-	height: 80px;
+	width: 60px;
+	height: 60px;
 	pointer-events: none;
 	z-index: 1;
 `;
 
-// SVG ćwiartki, duża, obrót o 0deg (brak transformacji)
 const QuarterSvg = styled.svg`
 	width: 100%;
 	height: 100%;
 	display: block;
 `;
 
-// Ikona na środku ćwiartki
 const QuarterIcon = styled.img`
 	position: absolute;
-	right: 22px;
+	right: 15px;
 	bottom: 12px;
-	width: 32px;
-	height: 32px;
+	width: 22px;
+	height: 22px;
 	z-index: 2;
 	pointer-events: none;
 `;
@@ -204,7 +206,17 @@ const KontoGrid = styled.div`
 	gap: 20px;
 `;
 
+// --- COMPONENT ---
 export default function YourOrganisation() {
+	const { organisations, selectedOrganisationId, loading, error } = useMain();
+
+	// Znajdź wybraną organizację
+	const organisation: Organisation | undefined =
+		organisations.find(org => org._id === selectedOrganisationId) ||
+		organisations[0];
+
+	const estates: Estate[] = organisation?.estates || [];
+
 	const today = new Date();
 	const monthsPL = [
 		"stycznia",
@@ -224,126 +236,179 @@ export default function YourOrganisation() {
 		monthsPL[today.getMonth()]
 	} ${today.getFullYear()}`;
 
+	// Liczba osiedli
+	const estateCount = estates.length;
+
+	// Liczba mieszkańców (sumujemy liczbę mieszkań ze wszystkich osiedli)
+	const residentsCount = estates.reduce(
+		(acc, estate) =>
+			acc +
+			(typeof estate.numberOfFlats === "number" ? estate.numberOfFlats : 0),
+		0
+	);
+
+	// Dane firmy z organizacji
+	const companyName = organisation?.companyName || "-";
+	const nip = "-"; // Jeśli masz pole NIP w organizacji to je tu dodaj
+	const registeredBy = organisation?.manager ?? "-"; // Jeżeli manager to string, wyświetlamy id, jeśli obiekt to .firstName .lastName
+	const address = organisation?.address;
+	const street =
+		address?.street && address?.buildingNumber
+			? `${address.street} ${address.buildingNumber}`
+			: address?.street ?? "-";
+	const city = address?.city || "-";
+	const zipCode = address?.zipCode || "-";
+	const phone = organisation?.phone || "-";
+	const email = organisation?.email || "-";
+	const accountStatus = organisation?.accountStatus || "-";
+
 	return (
 		<Container>
-			<StatsRow>
-				{/* Osiedla */}
-				<StatBox>
-					<StatNumber>3</StatNumber>
-					<StatLabel>Osiedla</StatLabel>
-					<QuarterCircleWrapper>
-						<QuarterSvg viewBox='0 0 110 110'>
-							<path d='M0,110 A110,110 0 0,1 110,0 L110,110 Z' fill='#FFD100' />
-						</QuarterSvg>
-						<QuarterIcon
-							src='/assets/yourOrganisation/building.svg'
-							alt='Ikona osiedla'
-						/>
-					</QuarterCircleWrapper>
-				</StatBox>
-				{/* Mieszkańców */}
-				<StatBox>
-					<StatNumber>145</StatNumber>
-					<StatLabel>Mieszkańców</StatLabel>
-					<QuarterCircleWrapper>
-						<QuarterSvg viewBox='0 0 110 110'>
-							<path d='M0,110 A110,110 0 0,1 110,0 L110,110 Z' fill='#E8AE9E' />
-						</QuarterSvg>
-						<QuarterIcon
-							src='/assets/yourOrganisation/residents.svg'
-							alt='Ikona mieszkańców'
-						/>
-					</QuarterCircleWrapper>
-				</StatBox>
-				{/* Kalendarz */}
-				<CalendarBox>
-					<CalendarLabel>Dziś mamy:</CalendarLabel>
-					<CalendarDate>{formattedDate}</CalendarDate>
-				</CalendarBox>
-			</StatsRow>
-			{/* --- Dane Twojej firmy --- */}
-			<Card>
-				<SectionHeader>
-					<SectionTitle>Dane Twojej firmy</SectionTitle>
-				</SectionHeader>
-				<InputsGrid>
-					{/* Kolumna 1 */}
-					<InputGroup>
-						<InputLabelRow>
-							<Icon src='/assets/yourOrganisation/building2.svg' alt='' />
-							<InputLabel>Nazwa firmy</InputLabel>
-						</InputLabelRow>
-						<InputField>NAZWA FIRMY</InputField>
-					</InputGroup>
-					<InputGroup>
-						<InputLabelRow>
-							<Icon src='/assets/yourOrganisation/building2.svg' alt='' />
-							<InputLabel>NIP</InputLabel>
-						</InputLabelRow>
-						<InputField>NIP</InputField>
-					</InputGroup>
-					<InputGroup>
-						<InputLabelRow>
-							<Icon src='/assets/yourOrganisation/residents.svg' alt='' />
-							<InputLabel>Konto zarejestrowane przez</InputLabel>
-						</InputLabelRow>
-						<InputField>IMIE NAZWISKO</InputField>
-					</InputGroup>
-					{/* Kolumna 2 */}
-					<InputGroup>
-						<InputLabelRow>
-							<Icon src='/assets/yourOrganisation/building2.svg' alt='' />
-							<InputLabel>Ulica</InputLabel>
-						</InputLabelRow>
-						<InputField>ULICA</InputField>
-					</InputGroup>
-					<InputGroup>
-						<InputLabelRow>
-							<Icon src='/assets/yourOrganisation/building2.svg' alt='' />
-							<InputLabel>Miasto</InputLabel>
-						</InputLabelRow>
-						<InputField>MIASTO</InputField>
-					</InputGroup>
-					<InputGroup>
-						<InputLabelRow>
-							<Icon src='/assets/yourOrganisation/building2.svg' alt='' />
-							<InputLabel>Kod pocztowy</InputLabel>
-						</InputLabelRow>
-						<InputField>KOD POCZTOWY</InputField>
-					</InputGroup>
-					{/* Kolumna 3 */}
-					<InputGroup>
-						<InputLabelRow>
-							<Icon src='/assets/yourOrganisation/telephone.svg' alt='' />
-							<InputLabel>Numer telefonu (firmowy)</InputLabel>
-						</InputLabelRow>
-						<InputField>NUMER TELEFONU</InputField>
-					</InputGroup>
-					<InputGroup style={{ gridColumn: "2 / span 2" }}>
-						<InputLabelRow>
-							<Icon src='/assets/yourOrganisation/residents.svg' alt='' />
-							<InputLabel>Adres email</InputLabel>
-						</InputLabelRow>
-						<InputField>FIRMOWY ADRES EMAIL</InputField>
-					</InputGroup>
-				</InputsGrid>
-			</Card>
-			{/* --- Twoje konto --- */}
-			<KontoCard>
-				<SectionHeader>
-					<SectionTitle>Twoje konto</SectionTitle>
-					<ProButton>Odblokuj wersję PRO</ProButton>
-				</SectionHeader>
-				<KontoGrid>
-					<InputGroup>
-						<InputLabelRow>
-							<Icon src='/assets/yourOrganisation/building.svg' alt='' />
-							<InputLabel>Typ twojego konta</InputLabel>
-						</InputLabelRow>
-						<InputField>Konto podstawowe</InputField>
-					</InputGroup>
-				</KontoGrid>
-			</KontoCard>
+			{loading ? (
+				<Card>
+					<InputField>Ładowanie danych organizacji...</InputField>
+				</Card>
+			) : error ? (
+				<Card>
+					<InputField>Błąd: {error}</InputField>
+				</Card>
+			) : !organisation ? (
+				<Card>
+					<InputField>Brak wybranej organizacji.</InputField>
+				</Card>
+			) : (
+				<>
+					<StatsRow>
+						{/* Osiedla */}
+						<StatBox>
+							<StatNumber>{estateCount}</StatNumber>
+							<StatLabel>Osiedla</StatLabel>
+							<QuarterCircleWrapper>
+								<QuarterSvg viewBox='0 0 110 110'>
+									<path
+										d='M0,110 A110,110 0 0,1 110,0 L110,110 Z'
+										fill='#FFD100'
+									/>
+								</QuarterSvg>
+								<QuarterIcon
+									src='/assets/yourOrganisation/building3.svg'
+									alt='Ikona osiedla'
+								/>
+							</QuarterCircleWrapper>
+						</StatBox>
+						{/* Mieszkańców */}
+						<StatBox>
+							<StatNumber>{residentsCount}</StatNumber>
+							<StatLabel>Mieszkańców</StatLabel>
+							<QuarterCircleWrapper>
+								<QuarterSvg viewBox='0 0 110 110'>
+									<path
+										d='M0,110 A110,110 0 0,1 110,0 L110,110 Z'
+										fill='#E8AE9E'
+									/>
+								</QuarterSvg>
+								<QuarterIcon
+									src='/assets/yourOrganisation/building2.svg'
+									alt='Ikona mieszkańców'
+								/>
+							</QuarterCircleWrapper>
+						</StatBox>
+						{/* Kalendarz */}
+						<CalendarBox>
+							<CalendarLabel>Dziś mamy:</CalendarLabel>
+							<CalendarDate>{formattedDate}</CalendarDate>
+						</CalendarBox>
+					</StatsRow>
+
+					{/* --- Dane Twojej firmy --- */}
+					<Card>
+						<SectionHeader>
+							<SectionTitle>Dane Twojej firmy</SectionTitle>
+						</SectionHeader>
+						<InputsGrid>
+							{/* Kolumna 1 */}
+							<InputGroup>
+								<InputLabelRow>
+									<Icon src='/assets/yourOrganisation/building2.svg' alt='' />
+									<InputLabel>Nazwa firmy</InputLabel>
+								</InputLabelRow>
+								<InputField>{companyName}</InputField>
+							</InputGroup>
+							<InputGroup>
+								<InputLabelRow>
+									<Icon src='/assets/yourOrganisation/building2.svg' alt='' />
+									<InputLabel>NIP</InputLabel>
+								</InputLabelRow>
+								<InputField>{nip}</InputField>
+							</InputGroup>
+							<InputGroup>
+								<InputLabelRow>
+									<Icon src='/assets/yourOrganisation/residents.svg' alt='' />
+									<InputLabel>Konto zarejestrowane przez</InputLabel>
+								</InputLabelRow>
+								<InputField>{registeredBy}</InputField>
+							</InputGroup>
+							{/* Kolumna 2 */}
+							<InputGroup>
+								<InputLabelRow>
+									<Icon src='/assets/yourOrganisation/building2.svg' alt='' />
+									<InputLabel>Ulica</InputLabel>
+								</InputLabelRow>
+								<InputField>{street}</InputField>
+							</InputGroup>
+							<InputGroup>
+								<InputLabelRow>
+									<Icon src='/assets/yourOrganisation/building2.svg' alt='' />
+									<InputLabel>Miasto</InputLabel>
+								</InputLabelRow>
+								<InputField>{city}</InputField>
+							</InputGroup>
+							<InputGroup>
+								<InputLabelRow>
+									<Icon src='/assets/yourOrganisation/building2.svg' alt='' />
+									<InputLabel>Kod pocztowy</InputLabel>
+								</InputLabelRow>
+								<InputField>{zipCode}</InputField>
+							</InputGroup>
+							{/* Kolumna 3 */}
+							<InputGroup>
+								<InputLabelRow>
+									<Icon src='/assets/yourOrganisation/telephone.svg' alt='' />
+									<InputLabel>Numer telefonu (firmowy)</InputLabel>
+								</InputLabelRow>
+								<InputField>{phone}</InputField>
+							</InputGroup>
+							<InputGroup style={{ gridColumn: "2 / span 2" }}>
+								<InputLabelRow>
+									<Icon src='/assets/yourOrganisation/residents.svg' alt='' />
+									<InputLabel>Adres email</InputLabel>
+								</InputLabelRow>
+								<InputField>{email}</InputField>
+							</InputGroup>
+						</InputsGrid>
+					</Card>
+					{/* --- Twoje konto --- */}
+					<KontoCard>
+						<SectionHeader>
+							<SectionTitle>Twoje konto</SectionTitle>
+							<ProButton>Odblokuj wersję PRO</ProButton>
+						</SectionHeader>
+						<KontoGrid>
+							<InputGroup>
+								<InputLabelRow>
+									<Icon src='/assets/yourOrganisation/building.svg' alt='' />
+									<InputLabel>Typ twojego konta</InputLabel>
+								</InputLabelRow>
+								<InputField>
+									{accountStatus === "confirmed"
+										? "Konto potwierdzone"
+										: "Konto podstawowe"}
+								</InputField>
+							</InputGroup>
+						</KontoGrid>
+					</KontoCard>
+				</>
+			)}
 		</Container>
 	);
 }

@@ -5,12 +5,18 @@ import styled from "styled-components";
 
 // Styl główny karty kontaktów
 const Box = styled.div`
-	width: 556px;
+	width: 100%;
+	max-width: 400px; /* tak jak dotychczas, ale responsywnie */
 	background: #fdfdfd;
 	border-radius: 16px;
 	box-shadow: 1px 1px 10px rgba(0, 0, 0, 0.02);
-	padding: 32px 28px 24px 28px;
+	padding: 24px 16px 16px 16px;
 	margin: 0 auto;
+	box-sizing: border-box;
+
+	@media (max-width: 600px) {
+		padding: 10px 4px 10px 4px;
+	}
 `;
 
 const HeaderRow = styled.div`

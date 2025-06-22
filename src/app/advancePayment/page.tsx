@@ -1,11 +1,19 @@
 "use client";
 
-import { Sidebar } from "@/components/Sidebar";
-import { HelloTop } from "@/components/top/HelloTop";
 import React, { useState } from "react";
 import styled from "styled-components";
 
-// ---- Styled Components ----
+import { Sidebar } from "@/components/Sidebar";
+import { HelloTop } from "@/components/top/HelloTop";
+import { useMain } from "@/context/EstateContext";
+
+// ─── Modale ───────────────────────────────────────────────────────
+import { AddPaymentsModal } from "@/components/modal/AddPaymentsModal";
+import { AddBalancesModal } from "@/components/modal/AddBalancesModal";
+
+// ───────────────────────────────────────────────────────────────────
+//  Styled Components
+// ───────────────────────────────────────────────────────────────────
 const MAX_WIDTH = 1400;
 
 const Outer = styled.div`
@@ -229,122 +237,57 @@ const EditButton = styled.button`
 	margin-left: 8px;
 `;
 
-const ExampleSaldoRow = styled.div`
-	width: 100%;
-	min-height: 44px;
-	padding-left: 10px;
-	padding-right: 10px;
-	background: white;
-	border-radius: 10px;
-	display: flex;
-	align-items: center;
-	gap: 44px;
-	margin-bottom: 8px;
-`;
-
-const SaldoContent = () => (
-	<ExampleSaldoRow>
-		<div style={{ flex: 1, display: "flex", gap: 15, alignItems: "center" }}>
-			<span
-				style={{
-					color: "#202020",
-					fontSize: 10,
-					fontFamily: "Roboto",
-					fontWeight: 500,
-					letterSpacing: 0.5,
-				}}>
-				m.1
-			</span>
-			<span
-				style={{
-					color: "#202020",
-					fontSize: 10,
-					fontFamily: "Roboto",
-					fontWeight: 500,
-					letterSpacing: 0.5,
-				}}>
-				0 zł
-			</span>
-		</div>
-		<div
-			style={{
-				padding: "9px 20px",
-				background: "#D9D9D9",
-				borderRadius: 30,
-				fontSize: 10,
-				fontFamily: "Roboto",
-				fontWeight: 400,
-				letterSpacing: 0.5,
-				color: "#202020",
-			}}>
-			Edytuj dane
-		</div>
-	</ExampleSaldoRow>
-);
-
-// Dane
-const rows = [
-	{
-		mieszkanie: "m.1",
-		kwota: "825 zł",
-		konto: "49 1020 2892 2276 3005 0000 0000",
-	},
-	{
-		mieszkanie: "m.2",
-		kwota: "760 zł",
-		konto: "49 1020 2892 2276 3005 0000 0000",
-	},
-	{
-		mieszkanie: "m.3",
-		kwota: "760 zł",
-		konto: "49 1020 2892 2276 3005 0000 0000",
-	},
-	{
-		mieszkanie: "m.4",
-		kwota: "945 zł",
-		konto: "49 1020 2892 2276 3005 0000 0000",
-	},
-	{
-		mieszkanie: "m.5",
-		kwota: "760 zł",
-		konto: "49 1020 2892 2276 3005 0000 0000",
-	},
-	{
-		mieszkanie: "m.6",
-		kwota: "825 zł",
-		konto: "49 1020 2892 2276 3005 0000 0000",
-	},
-	{
-		mieszkanie: "m.7",
-		kwota: "780 zł",
-		konto: "49 1020 2892 2276 3005 0000 0000",
-	},
-	{
-		mieszkanie: "m.8",
-		kwota: "790 zł",
-		konto: "49 1020 2892 2276 3005 0000 0000",
-	},
-	{
-		mieszkanie: "m.9",
-		kwota: "945 zł",
-		konto: "49 1020 2892 2276 3005 0000 0000",
-	},
-	{
-		mieszkanie: "m.10",
-		kwota: "945 zł",
-		konto: "49 1020 2892 2276 3005 0000 0000",
-	},
-	{
-		mieszkanie: "m.11",
-		kwota: "825 zł",
-		konto: "49 1020 2892 2276 3005 0000 0000",
-		faded: true,
-	},
-];
-
-// ---- MAIN PAGE COMPONENT ----
+// ───────────────────────────────────────────────────────────────────
+//  Component
+// ───────────────────────────────────────────────────────────────────
 export default function AdvancePaymentPage() {
-	const [activeTab, setActiveTab] = useState(0); // 0 = czynsz, 1 = saldo
+	const [activeTab, setActiveTab] = useState<0 | 1>(0); // 0 = czynsz, 1 = saldo
+	const [search, setSearch] = useState("");
+	const [showModal, setShowModal] = useState<"payments" | "balances" | null>(
+		null
+	);
+
+	const { payments, balances, loading, error, selectedEstateId } = useMain();
+
+	console.log("selectedEstateId", selectedEstateId);
+	console.log("payments", payments);
+	console.log("balances", balances);
+
+	if (!selectedEstateId)
+		return (
+			<Outer>
+				<Sidebar />
+				<Central>
+					<HelloWrapper>
+						<HelloTop />
+					</HelloWrapper>
+					<MainPanel>
+						<Header>
+							<Title>Rozliczenia osiedla</Title>
+							<SubTitle>
+								Wybierz najpierw osiedle, żeby zobaczyć dane o rozliczeniach.
+							</SubTitle>
+						</Header>
+					</MainPanel>
+				</Central>
+			</Outer>
+		);
+
+	const filteredPayments = payments.filter(
+		p =>
+			p.estateId === selectedEstateId &&
+			p.flatNumber.toLowerCase().includes(search.toLowerCase())
+	);
+	const filteredBalances = balances.filter(
+		b =>
+			b.estateId === selectedEstateId &&
+			b.flatNumber.toLowerCase().includes(search.toLowerCase())
+	);
+
+	const addBtnLabel =
+		activeTab === 0
+			? "Dodaj/Edytuj kwoty zaliczek"
+			: "Dodaj/Edytuj kwoty salda";
 
 	return (
 		<Outer>
@@ -371,7 +314,7 @@ export default function AdvancePaymentPage() {
 								src='/assets/advancePayment/list.png'
 								width={15}
 								height={15}
-								alt='plus'
+								alt='list'
 							/>
 							Miesięczne zaliczki mieszkańców – czynsz
 						</TabButton>
@@ -380,22 +323,26 @@ export default function AdvancePaymentPage() {
 								src='/assets/advancePayment/list.png'
 								width={15}
 								height={15}
-								alt='plus'
+								alt='list'
 							/>
 							Aktualne saldo mieszkańców
 						</TabButton>
 					</TabsWrapper>
 
 					<ControlsBar>
-						<ButtonYellow>
+						<ButtonYellow
+							onClick={() =>
+								setShowModal(activeTab === 0 ? "payments" : "balances")
+							}>
 							<img
 								src='/assets/advancePayment/plus.png'
 								width={15}
 								height={15}
 								alt='plus'
 							/>
-							Dodaj/Edytuj kwoty zaliczek
+							{addBtnLabel}
 						</ButtonYellow>
+
 						<InputWrapper>
 							<img
 								src='/assets/advancePayment/search.png'
@@ -403,8 +350,13 @@ export default function AdvancePaymentPage() {
 								height={15}
 								alt='search'
 							/>
-							<Input placeholder='Wyszukaj mieszkańca' />
+							<Input
+								placeholder='Wyszukaj mieszkanie'
+								value={search}
+								onChange={e => setSearch(e.target.value)}
+							/>
 						</InputWrapper>
+
 						<GrayButton>
 							<img
 								src='/assets/advancePayment/filter.png'
@@ -426,34 +378,77 @@ export default function AdvancePaymentPage() {
 					</ControlsBar>
 
 					<TableWrapper>
-						{activeTab === 0 ? (
+						{loading && (
+							<div
+								style={{ padding: 30, textAlign: "center", color: "#9d9d9d" }}>
+								Ładowanie danych...
+							</div>
+						)}
+						{error && (
+							<div style={{ padding: 30, textAlign: "center", color: "red" }}>
+								Błąd: {error}
+							</div>
+						)}
+
+						{!loading && !error && (
 							<Table>
-								<TableHeader>
-									<Th>Mieszkanie</Th>
-									<Th>Kwota czynszu</Th>
-									<Th>Nr konta</Th>
-									<Th />
-								</TableHeader>
-								{rows.map((row, i) => (
-									<TableRow key={i} faded={row.faded}>
-										<Td>{row.mieszkanie}</Td>
-										<Td>{row.kwota}</Td>
-										<Td>{row.konto}</Td>
-										<Td style={{ display: "flex", justifyContent: "flex-end" }}>
-											<EditButton disabled={row.faded}>Edytuj dane</EditButton>
-										</Td>
-									</TableRow>
-								))}
+								{activeTab === 0 ? (
+									<>
+										<TableHeader>
+											<Th>Mieszkanie</Th>
+											<Th>Kwota czynszu</Th>
+											<Th>Nr konta</Th>
+											<Th />
+										</TableHeader>
+										{filteredPayments.map(row => (
+											<TableRow key={row._id}>
+												<Td>{row.flatNumber}</Td>
+												<Td>{row.amount} zł</Td>
+												<Td>{row.bankAccount}</Td>
+												<Td
+													style={{
+														display: "flex",
+														justifyContent: "flex-end",
+													}}>
+													<EditButton>Edytuj dane</EditButton>
+												</Td>
+											</TableRow>
+										))}
+									</>
+								) : (
+									<>
+										<TableHeader>
+											<Th>Mieszkanie</Th>
+											<Th>Saldo</Th>
+											<Th />
+										</TableHeader>
+										{filteredBalances.map(row => (
+											<TableRow key={row._id}>
+												<Td>{row.flatNumber}</Td>
+												<Td>{row.amount} zł</Td>
+												<Td
+													style={{
+														display: "flex",
+														justifyContent: "flex-end",
+													}}>
+													<EditButton>Edytuj saldo</EditButton>
+												</Td>
+											</TableRow>
+										))}
+									</>
+								)}
 							</Table>
-						) : (
-							<>
-								<SaldoContent />
-								<SaldoContent />
-								<SaldoContent />
-							</>
 						)}
 					</TableWrapper>
 				</MainPanel>
+
+				{/* ─── Modale */}
+				{showModal === "payments" && (
+					<AddPaymentsModal isOpen onClose={() => setShowModal(null)} />
+				)}
+				{showModal === "balances" && (
+					<AddBalancesModal isOpen onClose={() => setShowModal(null)} />
+				)}
 			</Central>
 		</Outer>
 	);

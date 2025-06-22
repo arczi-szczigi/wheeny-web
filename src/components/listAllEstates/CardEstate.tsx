@@ -12,6 +12,7 @@ const COLORS = {
 };
 
 const Wrapper = styled.div<{ $selected?: boolean }>`
+	width: 100%;
 	background: ${COLORS.background};
 	border-radius: 10px;
 	box-shadow: ${COLORS.shadow};

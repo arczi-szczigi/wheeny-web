@@ -1,14 +1,18 @@
-import React from "react";
+"use client";
+import React, { useState, useEffect } from "react";
 import styled from "styled-components";
+import { useMain } from "@/context/EstateContext";
+import { useAnnouncement } from "@/context/AnnouncementContext";
+import WasteModal from "../modal/WasteModal";
+import type { GarbageCalendar } from "@/context/AnnouncementContext";
 
-// --- Wrapper i główna karta ---
+// --- Style ---
 const PageWrapper = styled.div`
 	width: 100%;
 	min-height: 100vh;
 	background: #ededed;
 	padding: 42px 0 0 64px;
 `;
-
 const Title = styled.h1`
 	font-size: 30px;
 	font-family: Roboto;
@@ -17,7 +21,6 @@ const Title = styled.h1`
 	color: #202020;
 	margin-bottom: 32px;
 `;
-
 const WhiteCard = styled.div`
 	width: 1360px;
 	margin: 0;
@@ -27,15 +30,12 @@ const WhiteCard = styled.div`
 	box-sizing: border-box;
 	box-shadow: 0 2px 20px rgba(0, 0, 0, 0.01);
 `;
-
-// --- Górna linia z przyciskami i inputami ---
 const TopRow = styled.div`
 	display: flex;
 	gap: 18px;
 	align-items: center;
 	margin-bottom: 18px;
 `;
-
 const AddButton = styled.button`
 	display: flex;
 	align-items: center;
@@ -52,18 +52,15 @@ const AddButton = styled.button`
 	cursor: pointer;
 	gap: 8px;
 	box-shadow: 1px 1px 10px rgba(0, 0, 0, 0.02);
-
 	&:hover {
 		background: #ffe25c;
 	}
 `;
-
 const AddIcon = styled.img`
 	width: 15px;
 	height: 15px;
 	margin-right: 2px;
 `;
-
 const SearchInputWrapper = styled.div`
 	display: flex;
 	align-items: center;
@@ -76,12 +73,10 @@ const SearchInputWrapper = styled.div`
 	flex: 1 1 0;
 	gap: 8px;
 `;
-
 const SearchIcon = styled.img`
 	width: 15px;
 	height: 15px;
 `;
-
 const SearchInput = styled.input`
 	border: none;
 	background: transparent;
@@ -91,12 +86,10 @@ const SearchInput = styled.input`
 	outline: none;
 	flex: 1;
 `;
-
 const FilterRow = styled.div`
 	display: flex;
 	gap: 10px;
 `;
-
 const FilterBox = styled.div`
 	display: flex;
 	align-items: center;
@@ -110,14 +103,10 @@ const FilterBox = styled.div`
 	font-family: Roboto;
 	gap: 8px;
 `;
-
 const FilterIcon = styled.img`
 	width: 17px;
 	height: 17px;
 `;
-
-// --- lista pojedynczych kart/wierszy ---
-
 const ListWrapper = styled.div`
 	margin-top: 24px;
 	width: 100%;
@@ -125,8 +114,6 @@ const ListWrapper = styled.div`
 	flex-direction: column;
 	gap: 16px;
 `;
-
-// --- POJEDYNCZA KARTA/WIERSZ ---
 const Row = styled.div`
 	display: flex;
 	align-items: center;
@@ -137,14 +124,12 @@ const Row = styled.div`
 	box-shadow: 0 2px 10px rgba(0, 0, 0, 0.01);
 	gap: 20px;
 `;
-
 const RowCol1 = styled.div`
 	flex: 3;
 	display: flex;
 	align-items: center;
 	gap: 14px;
 `;
-
 const TrashIconWrap = styled.div`
 	width: 25px;
 	height: 25px;
@@ -154,12 +139,10 @@ const TrashIconWrap = styled.div`
 	align-items: center;
 	justify-content: center;
 `;
-
 const TrashIcon = styled.img`
 	width: 16px;
 	height: 16px;
 `;
-
 const RowLabel = styled.div`
 	color: #4d4d4d;
 	font-size: 12px;
@@ -167,7 +150,6 @@ const RowLabel = styled.div`
 	font-weight: 500;
 	letter-spacing: 0.6px;
 `;
-
 const RowCol2 = styled.div`
 	flex: 4;
 	display: flex;
@@ -175,7 +157,6 @@ const RowCol2 = styled.div`
 	align-items: flex-start;
 	padding: 16px 0;
 `;
-
 const RowColGroup = styled.div`
 	display: flex;
 	flex-direction: column;
@@ -183,7 +164,6 @@ const RowColGroup = styled.div`
 	min-width: 90px;
 	gap: 2px;
 `;
-
 const ColHeader = styled.div`
 	color: #9d9d9d;
 	font-size: 10px;
@@ -192,7 +172,6 @@ const ColHeader = styled.div`
 	letter-spacing: 0.5px;
 	margin-bottom: 1px;
 `;
-
 const RowValue = styled.div`
 	color: #202020;
 	font-size: 10px;
@@ -200,13 +179,11 @@ const RowValue = styled.div`
 	font-weight: 500;
 	letter-spacing: 0.5px;
 `;
-
 const RowActions = styled.div`
 	display: flex;
 	gap: 20px;
 	margin-left: 18px;
 `;
-
 const ActionBtn = styled.button<{ danger?: boolean }>`
 	padding: 9px 20px;
 	border-radius: 30px;
@@ -224,43 +201,71 @@ const ActionBtn = styled.button<{ danger?: boolean }>`
 	}
 `;
 
-// --- DANE PRZYKŁADOWE ---
-const exampleRows = [
-	{
-		label: "Kalendarz odbioru odpadów gabarytowych",
-		year: "2025",
-		sorted: "TAK",
-		date: "08.01.2025",
-	},
-	{
-		label: "Kalendarz odbioru odpadów gabarytowych",
-		year: "2024",
-		sorted: "TAK",
-		date: "5.01.2024",
-	},
-	{
-		label: "Kalendarz odbioru odpadów gabarytowych",
-		year: "2023",
-		sorted: "TAK",
-		date: "11.01.2023",
-	},
-];
-
-// --- KOMPONENT ---
-
 export default function Trash() {
+	const { selectedEstateId } = useMain();
+	const {
+		garbageCalendars,
+		loading,
+		error,
+		fetchGarbageCalendars,
+		addGarbageCalendar,
+		editGarbageCalendar,
+		deleteGarbageCalendar,
+	} = useAnnouncement();
+
+	const [search, setSearch] = useState<string>("");
+	const [showWasteModal, setShowWasteModal] = useState(false);
+	const [editCalendar, setEditCalendar] = useState<GarbageCalendar | null>(
+		null
+	);
+
+	// Pobierz harmonogramy na wejściu i przy zmianie osiedla
+	useEffect(() => {
+		if (selectedEstateId) {
+			fetchGarbageCalendars(selectedEstateId);
+		}
+	}, [selectedEstateId, fetchGarbageCalendars]);
+
+	const filtered: GarbageCalendar[] =
+		search.trim().length > 0
+			? garbageCalendars.filter((calendar: GarbageCalendar) =>
+					calendar.year.toString().includes(search.trim())
+			  )
+			: garbageCalendars;
+
+	// --- obsługa modala dodawania/edycji ---
+	const handleAdd = () => {
+		setEditCalendar(null);
+		setShowWasteModal(true);
+	};
+	const handleEdit = (calendar: GarbageCalendar) => {
+		setEditCalendar(calendar);
+		setShowWasteModal(true);
+	};
+	const handleDelete = async (id: string) => {
+		if (selectedEstateId) {
+			if (window.confirm("Czy na pewno usunąć ten kalendarz?")) {
+				await deleteGarbageCalendar(id, selectedEstateId);
+			}
+		}
+	};
+
 	return (
 		<PageWrapper>
 			<Title>Odpady</Title>
 			<WhiteCard>
 				<TopRow>
-					<AddButton>
+					<AddButton onClick={handleAdd}>
 						<AddIcon src='/assets/trash/plus.svg' alt='plus' />
 						Dodaj kalendarz
 					</AddButton>
 					<SearchInputWrapper>
 						<SearchIcon src='/assets/trash/search.svg' alt='search' />
-						<SearchInput placeholder='Wyszukaj kalendarz' />
+						<SearchInput
+							placeholder='Wyszukaj kalendarz (rok)'
+							value={search}
+							onChange={e => setSearch(e.target.value)}
+						/>
 					</SearchInputWrapper>
 					<FilterRow>
 						<FilterBox>
@@ -275,36 +280,93 @@ export default function Trash() {
 				</TopRow>
 
 				<ListWrapper>
-					{exampleRows.map((row, i) => (
-						<Row key={i}>
+					{loading ? (
+						<Row>
 							<RowCol1>
-								<TrashIconWrap>
-									<TrashIcon src='/assets/trash/trash.svg' alt='trash' />
-								</TrashIconWrap>
-								<RowLabel>{row.label}</RowLabel>
+								<RowLabel>Ładowanie...</RowLabel>
 							</RowCol1>
-							<RowCol2>
-								<RowColGroup>
-									<ColHeader>Rok kalendarzowy</ColHeader>
-									<RowValue>{row.year}</RowValue>
-								</RowColGroup>
-								<RowColGroup>
-									<ColHeader>Informacja o sortowaniu</ColHeader>
-									<RowValue>{row.sorted}</RowValue>
-								</RowColGroup>
-								<RowColGroup>
-									<ColHeader>Data dodania</ColHeader>
-									<RowValue>{row.date}</RowValue>
-								</RowColGroup>
-							</RowCol2>
-							<RowActions>
-								<ActionBtn>Edytuj terminy</ActionBtn>
-								<ActionBtn danger>Usuń kalendarz</ActionBtn>
-							</RowActions>
 						</Row>
-					))}
+					) : error ? (
+						<Row>
+							<RowCol1>
+								<RowLabel style={{ color: "red" }}>Błąd: {error}</RowLabel>
+							</RowCol1>
+						</Row>
+					) : filtered.length === 0 ? (
+						<Row>
+							<RowCol1>
+								<RowLabel>Brak kalendarzy dla tego osiedla.</RowLabel>
+							</RowCol1>
+						</Row>
+					) : (
+						filtered.map((calendar: GarbageCalendar) => (
+							<Row key={calendar._id}>
+								<RowCol1>
+									<TrashIconWrap>
+										<TrashIcon src='/assets/trash/trash.svg' alt='trash' />
+									</TrashIconWrap>
+									<RowLabel>Kalendarz odbioru odpadów gabarytowych</RowLabel>
+								</RowCol1>
+								<RowCol2>
+									<RowColGroup>
+										<ColHeader>Rok kalendarzowy</ColHeader>
+										<RowValue>{calendar.year}</RowValue>
+									</RowColGroup>
+									<RowColGroup>
+										<ColHeader>Liczba terminów</ColHeader>
+										<RowValue>{calendar.dates.length}</RowValue>
+									</RowColGroup>
+									<RowColGroup>
+										<ColHeader>Najbliższy termin</ColHeader>
+										<RowValue>
+											{calendar.dates.length > 0 ? calendar.dates[0] : "Brak"}
+										</RowValue>
+									</RowColGroup>
+								</RowCol2>
+								<RowActions>
+									<ActionBtn onClick={() => handleEdit(calendar)}>
+										Edytuj terminy
+									</ActionBtn>
+									<ActionBtn danger onClick={() => handleDelete(calendar._id)}>
+										Usuń kalendarz
+									</ActionBtn>
+								</RowActions>
+							</Row>
+						))
+					)}
 				</ListWrapper>
 			</WhiteCard>
+			{/* MODAL */}
+			{showWasteModal && (
+				<WasteModal
+					isOpen={showWasteModal}
+					onClose={() => setShowWasteModal(false)}
+					calendar={editCalendar} // null = dodawanie, obiekt = edycja
+					selectedEstateId={selectedEstateId ?? undefined}
+					// poniżej przekazujemy funkcje obsługi dodawania/edycji
+					onCreate={async ({ year, days }) => {
+						if (!selectedEstateId) return;
+						await addGarbageCalendar({
+							estateId: selectedEstateId,
+							year: Number(year),
+							dates: days,
+						});
+						setShowWasteModal(false);
+					}}
+					onEdit={async (id, { year, days }) => {
+						if (!selectedEstateId) return;
+						await editGarbageCalendar(
+							id,
+							{
+								year: Number(year),
+								dates: days,
+							},
+							selectedEstateId
+						);
+						setShowWasteModal(false);
+					}}
+				/>
+			)}
 		</PageWrapper>
 	);
 }

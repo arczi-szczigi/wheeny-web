@@ -1,5 +1,9 @@
+"use client";
+
 import React, { useState } from "react";
 import styled from "styled-components";
+import { useMain } from "@/context/EstateContext"; // POPRAWIONY import!
+import type { EstateDocument } from "@/context/EstateContext"; // Typ dokumentu
 
 // --- Styled Components ---
 
@@ -210,151 +214,28 @@ const EditButton = styled.button`
 	padding: 9px 24px;
 	cursor: pointer;
 	margin-left: 8px;
-	white-space: nowrap; // <--- dodaj to!
+	white-space: nowrap;
 `;
 
-// Komponent renderowany po przełączeniu taba "Dokumenty dla osiedla..."
-const ExampleDocRow = styled.div`
-	width: 1320px;
-	height: 60px;
-	padding: 10px;
-	background: white;
-	border-radius: 10px;
-	border-bottom: 0.5px #dadada solid;
-	display: flex;
-	align-items: center;
-	gap: 30px;
-	margin-bottom: 8px;
-`;
+// ---------------- LOGIKA KOMPONENTU -----------------------
 
-const ExampleDocContent = () => (
-	<ExampleDocRow>
-		<div style={{ width: 25, height: 25 }}>
-			<img
-				src='/assets/documentsEstate/pdf.png'
-				alt='pdf'
-				width={25}
-				height={25}
-			/>
-		</div>
-		<div style={{ width: 300 }}>
-			<span
-				style={{
-					color: "#4D4D4D",
-					fontSize: 12,
-					fontFamily: "Roboto",
-					fontWeight: 500,
-					letterSpacing: 0.6,
-				}}>
-				Sprawozdanie roczne osiedla - 2024
-			</span>
-		</div>
-		<div style={{ minWidth: 70, textAlign: "center" }}>
-			<span
-				style={{
-					color: "#202020",
-					fontSize: 10,
-					fontFamily: "Roboto",
-					fontWeight: 500,
-					letterSpacing: 0.5,
-				}}>
-				Dokument
-			</span>
-		</div>
-		<div style={{ minWidth: 130, textAlign: "center" }}>
-			<span
-				style={{
-					color: "#202020",
-					fontSize: 10,
-					fontFamily: "Roboto",
-					fontWeight: 500,
-					letterSpacing: 0.5,
-				}}>
-				Natalia Krakowiak
-			</span>
-		</div>
-		<div style={{ minWidth: 90, textAlign: "center" }}>
-			<span
-				style={{
-					color: "#202020",
-					fontSize: 10,
-					fontFamily: "Roboto",
-					fontWeight: 500,
-					letterSpacing: 0.5,
-				}}>
-				21.01.2025
-			</span>
-		</div>
-		<div style={{ minWidth: 70, textAlign: "center" }}>
-			<span
-				style={{
-					color: "#202020",
-					fontSize: 10,
-					fontFamily: "Roboto",
-					fontWeight: 500,
-					letterSpacing: 0.5,
-				}}>
-				wszyscy
-			</span>
-		</div>
-		<div style={{ display: "flex", gap: 10 }}>
-			<div
-				style={{
-					padding: "9px 20px",
-					background: "#D9D9D9",
-					borderRadius: 30,
-					fontSize: 10,
-					fontFamily: "Roboto",
-					fontWeight: 400,
-					letterSpacing: 0.5,
-					color: "#202020",
-				}}>
-				Podmień dokument
-			</div>
-			<div
-				style={{
-					padding: "9px 20px",
-					background: "#E8AE9E",
-					borderRadius: 30,
-					fontSize: 10,
-					fontFamily: "Roboto",
-					fontWeight: 400,
-					letterSpacing: 0.5,
-					color: "#202020",
-				}}>
-				Usuń dokument
-			</div>
-		</div>
-	</ExampleDocRow>
-);
-
-// Dane przykładowe do tabeli
-const rows = [
-	{
-		name: "Sprawozdanie roczne osiedla - 2024",
-		type: "Dokument",
-		person: "Natalia Krakowiak",
-		date: "21.01.2025",
-		odbiorca: "wszyscy",
-	},
-	{
-		name: "Zawiadomienie o uchwałach",
-		type: "Dokument",
-		person: "Natalia Krakowiak",
-		date: "07.01.2025",
-		odbiorca: "wszyscy",
-	},
-	{
-		name: "Pełnomocnictwo - zebranie 2025",
-		type: "Dokument",
-		person: "Natalia Krakowiak",
-		date: "28.12.2025",
-		odbiorca: "wszyscy",
-	},
-];
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
 export default function DocumentListBox() {
-	const [activeTab, setActiveTab] = useState(0); // 0 = dokumenty ogólne, 1 = zbiorcze/indywidualne
+	const { documents, loading } = useMain(); // POPRAWKA: useMain zamiast useEstates
+	const [activeTab, setActiveTab] = useState<number>(0);
+	const [search, setSearch] = useState<string>("");
+
+	// Filtrowanie dokumentów po tytule/originalName
+	const filteredDocs: EstateDocument[] =
+		search.trim().length > 0
+			? documents.filter(
+					(doc: EstateDocument) =>
+						doc.title.toLowerCase().includes(search.toLowerCase()) ||
+						doc.originalName.toLowerCase().includes(search.toLowerCase())
+			  )
+			: documents;
+
 	return (
 		<Container>
 			<MainPanel>
@@ -402,7 +283,11 @@ export default function DocumentListBox() {
 							height={15}
 							alt='search'
 						/>
-						<Input placeholder='Wyszukaj dokument' />
+						<Input
+							placeholder='Wyszukaj dokument'
+							value={search}
+							onChange={e => setSearch(e.target.value)}
+						/>
 					</InputWrapper>
 					<GrayButton>
 						<img
@@ -430,46 +315,96 @@ export default function DocumentListBox() {
 								<Th style={{ maxWidth: 35 }}></Th>
 								<Th>Nazwa dokumentu</Th>
 								<Th>Typ pliku</Th>
-								<Th>Dodano przez</Th>
+								<Th>Oryginalna nazwa</Th>
 								<Th>Data dodania</Th>
-								<Th>Odbiorca</Th>
+								<Th>Pobierz</Th>
 								<Th></Th>
 							</TableHeader>
-							{rows.map((row, i) => (
-								<TableRow key={i}>
-									<Td style={{ maxWidth: 35 }}>
-										<img
-											src='/assets/documentsEstate/pdf.png'
-											alt='pdf'
-											width={25}
-											height={25}
-										/>
-									</Td>
-									<Td>{row.name}</Td>
-									<Td>{row.type}</Td>
-									<Td>{row.person}</Td>
-									<Td>{row.date}</Td>
-									<Td>{row.odbiorca}</Td>
-									<Td
-										style={{
-											display: "flex",
-											gap: 10,
-											justifyContent: "flex-end",
-										}}>
-										<EditButton>Podmień dokument</EditButton>
-										<EditButton style={{ background: "#E8AE9E" }}>
-											Usuń dokument
-										</EditButton>
+							{loading ? (
+								<TableRow>
+									<Td style={{ textAlign: "center", width: "100%" }}>
+										Ładowanie...
 									</Td>
 								</TableRow>
-							))}
+							) : filteredDocs.length === 0 ? (
+								<TableRow>
+									<Td style={{ textAlign: "center", width: "100%" }}>
+										Brak dokumentów.
+									</Td>
+								</TableRow>
+							) : (
+								filteredDocs.map((doc: EstateDocument, i: number) => (
+									<TableRow key={doc._id || i}>
+										<Td style={{ maxWidth: 35, cursor: "pointer" }}>
+											<a
+												href={`${API_URL}/uploads/${doc.filename}`}
+												target='_blank'
+												rel='noopener noreferrer'
+												title='Pobierz dokument'
+												download={doc.originalName}>
+												<img
+													src='/assets/documentsEstate/pdf.png'
+													alt='pdf'
+													width={25}
+													height={25}
+													style={{ display: "block" }}
+												/>
+											</a>
+										</Td>
+										<Td style={{ cursor: "pointer" }}>
+											<a
+												href={`${API_URL}/uploads/${doc.filename}`}
+												target='_blank'
+												rel='noopener noreferrer'
+												title='Pobierz dokument'
+												download={doc.originalName}
+												style={{
+													color: "#4D4D4D",
+													textDecoration: "underline",
+												}}>
+												{doc.title}
+											</a>
+										</Td>
+										<Td>
+											{doc.mimetype.replace("application/", "").toUpperCase()}
+										</Td>
+										<Td>{doc.originalName}</Td>
+										<Td>
+											{new Date(doc.createdAt).toLocaleDateString("pl-PL")}
+										</Td>
+										<Td>
+											<a
+												href={`${API_URL}/uploads/${doc.filename}`}
+												target='_blank'
+												rel='noopener noreferrer'
+												download={doc.originalName}
+												style={{ color: "#202020" }}>
+												Pobierz
+											</a>
+										</Td>
+										<Td
+											style={{
+												display: "flex",
+												gap: 10,
+												justifyContent: "flex-end",
+											}}>
+											<EditButton>Podmień dokument</EditButton>
+											<EditButton style={{ background: "#E8AE9E" }}>
+												Usuń dokument
+											</EditButton>
+										</Td>
+									</TableRow>
+								))
+							)}
 						</Table>
 					) : (
-						// Renderujemy przykładową linijkę z figmy
 						<>
-							<ExampleDocContent />
-							<ExampleDocContent />
-							<ExampleDocContent />
+							{/* Możesz wrzucić tu logikę pod drugi tab */}
+							<TableRow>
+								<Td style={{ textAlign: "center", width: "100%" }}>
+									Funkcja w budowie...
+								</Td>
+							</TableRow>
 						</>
 					)}
 				</TableWrapper>

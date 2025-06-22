@@ -5,7 +5,6 @@ import { Sidebar } from "../../components/Sidebar";
 import { HelloTop } from "../../components/top/HelloTop";
 import Trash from "../../components/trashPanel/Trash";
 
-// Główny wrapper strony z gridem dla sidebar i treści
 const PageContainer = styled.div`
 	display: grid;
 	grid-template-columns: 260px 1fr;
@@ -22,15 +21,9 @@ const ContentWrapper = styled.div`
 export default function WastePanelPage() {
 	return (
 		<PageContainer>
-			{/* Sidebar */}
 			<Sidebar />
-
-			{/* Główna zawartość */}
 			<ContentWrapper>
-				{/* Pasek powitania */}
 				<HelloTop />
-
-				{/* Panel odpadów */}
 				<Trash />
 			</ContentWrapper>
 		</PageContainer>

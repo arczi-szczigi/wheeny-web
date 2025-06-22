@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
-import { EstateProvider } from "@/context/EstateContext";
+import { MainProvider } from "@/context/EstateContext";
+import { AnnouncementProvider } from "@/context/AnnouncementContext";
+import ClientWrapper from "./ClientWrapper";
 
 export const metadata: Metadata = {
 	title: "Manager Wheeny Panel",
@@ -14,7 +16,11 @@ export default function RootLayout({
 	return (
 		<html lang='pl'>
 			<body>
-				<EstateProvider>{children}</EstateProvider>
+				<ClientWrapper>
+					<MainProvider>
+						<AnnouncementProvider>{children}</AnnouncementProvider>
+					</MainProvider>
+				</ClientWrapper>
 			</body>
 		</html>
 	);

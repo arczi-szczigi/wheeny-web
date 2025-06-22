@@ -1,7 +1,12 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import styled from "styled-components";
+import AddAnnouncementModal from "../modal/AddAnnouncementModal";
+import EditAnnouncementModal from "../modal/EditAnnouncementModal";
+import { useAnnouncement } from "@/context/AnnouncementContext";
+import { useMain } from "@/context/EstateContext";
 
-// --- Styled Components ---
+// ... styled components bez zmian (masz wyżej, nie powtarzam tu dla czytelności) ...
+
 const Container = styled.div`
 	width: 100vw;
 	min-height: 100vh;
@@ -220,41 +225,38 @@ const DeleteButton = styled(EditButton)`
 	background: #e8ae9e;
 `;
 
-// Dane przykładowe ogłoszeń
-const announcements = [
-	{
-		title: "Zebranie wspólnoty - styczeń 2025",
-		author: "Natalia Krakowiak",
-		date: "21.01.2025",
-		receivers: "wszyscy",
-	},
-	{
-		title: "Zmiana terminu odbioru opadów marzec 2025",
-		author: "Natalia Krakowiak",
-		date: "11.12.2024",
-		receivers: "wszyscy",
-	},
-	{
-		title: "Podsumowanie zabrania",
-		author: "Natalia Krakowiak",
-		date: "09.11.2024",
-		receivers: "wszyscy",
-	},
-	{
-		title: "Zmiany regulaminu osiedla",
-		author: "Natalia Krakowiak",
-		date: "06.07.2024",
-		receivers: "wszyscy",
-	},
-	{
-		title: "Prośba od mieszkańców",
-		author: "Natalia Krakowiak",
-		date: "06.03.2023",
-		receivers: "wszyscy",
-	},
-];
+// --------------------- KOMPONENT -------------------------
 
 export default function AnnouncmentsListBox() {
+	const { selectedEstateId, manager } = useMain();
+	const {
+		announcements,
+		loading,
+		error,
+		fetchAnnouncements,
+		deleteAnnouncement,
+	} = useAnnouncement();
+
+	const [search, setSearch] = useState("");
+	const [showAddModal, setShowAddModal] = useState(false);
+
+	// Obsługa modala edycji:
+	const [editModalOpen, setEditModalOpen] = useState(false);
+	const [editingAnnouncement, setEditingAnnouncement] = useState<any | null>(
+		null
+	);
+
+	useEffect(() => {
+		if (selectedEstateId) fetchAnnouncements(selectedEstateId);
+	}, [selectedEstateId, fetchAnnouncements]);
+
+	const filtered = announcements.filter(
+		a =>
+			(String(a.estate) === String(selectedEstateId) ||
+				String(a.estateId) === String(selectedEstateId)) &&
+			a.title.toLowerCase().includes(search.toLowerCase())
+	);
+
 	return (
 		<Container>
 			<MainPanel>
@@ -262,7 +264,7 @@ export default function AnnouncmentsListBox() {
 					<Title>Ogłoszenia</Title>
 				</Header>
 				<ControlsBar>
-					<ButtonYellow>
+					<ButtonYellow onClick={() => setShowAddModal(true)}>
 						<span style={{ fontSize: 17, marginRight: 4, lineHeight: 0.7 }}>
 							+
 						</span>
@@ -270,7 +272,6 @@ export default function AnnouncmentsListBox() {
 					</ButtonYellow>
 					<InputWrapper>
 						<span style={{ color: "#9d9d9d" }}>
-							{" "}
 							<img
 								src='/assets/announcmentPanel/search.png'
 								alt='pdf'
@@ -278,7 +279,11 @@ export default function AnnouncmentsListBox() {
 								height={25}
 							/>
 						</span>
-						<Input placeholder='Wyszukaj ogłoszenie' />
+						<Input
+							placeholder='Wyszukaj ogłoszenie'
+							value={search}
+							onChange={e => setSearch(e.target.value)}
+						/>
 					</InputWrapper>
 					<GrayButton>
 						<span style={{ fontSize: 16, color: "#9d9d9d" }}>
@@ -313,31 +318,90 @@ export default function AnnouncmentsListBox() {
 							<Th style={{ minWidth: 100 }}>Odbiorcy</Th>
 							<Th></Th>
 						</TableHeader>
-						{announcements.map((row, i) => (
-							<TableRow key={i}>
-								<Td style={{ maxWidth: 50 }}>
-									<AnnouncementIcon>
-										<img
-											src='/assets/announcmentPanel/book.png'
-											alt='pdf'
-											width={15}
-											height={15}
-										/>
-									</AnnouncementIcon>
-								</Td>
-								<Td>{row.title}</Td>
-								<Td className='author'>{row.author}</Td>
-								<Td className='date'>{row.date}</Td>
-								<Td className='receivers'>{row.receivers}</Td>
-								<ActionsCell>
-									<EditButton>Edytuj ogłoszenie</EditButton>
-									<DeleteButton>Usuń ogłoszenie</DeleteButton>
-								</ActionsCell>
-							</TableRow>
-						))}
+						{loading ? (
+							<div
+								style={{ padding: 30, textAlign: "center", color: "#9d9d9d" }}>
+								Ładowanie danych...
+							</div>
+						) : error ? (
+							<div style={{ padding: 30, textAlign: "center", color: "red" }}>
+								Błąd: {error}
+							</div>
+						) : filtered.length === 0 ? (
+							<div
+								style={{ padding: 30, textAlign: "center", color: "#9d9d9d" }}>
+								Brak ogłoszeń.
+							</div>
+						) : (
+							filtered.map(row => (
+								<TableRow key={row._id}>
+									<Td style={{ maxWidth: 50 }}>
+										<AnnouncementIcon>
+											<img
+												src='/assets/announcmentPanel/book.png'
+												alt='pdf'
+												width={15}
+												height={15}
+											/>
+										</AnnouncementIcon>
+									</Td>
+									<Td>{row.title}</Td>
+									<Td className='author'>
+										{manager && row.createdBy === manager._id
+											? `${manager.firstName} ${manager.lastName}`
+											: "Manager"}
+									</Td>
+									<Td className='date'>
+										{row.publishedAt
+											?.slice(0, 10)
+											?.split("-")
+											.reverse()
+											.join(".")}
+									</Td>
+									<Td className='receivers'>wszyscy</Td>
+									<ActionsCell>
+										<EditButton
+											onClick={() => {
+												setEditingAnnouncement(row);
+												setEditModalOpen(true);
+											}}>
+											Edytuj ogłoszenie
+										</EditButton>
+										<DeleteButton
+											onClick={() => {
+												if (selectedEstateId)
+													deleteAnnouncement(row._id, selectedEstateId);
+											}}>
+											Usuń ogłoszenie
+										</DeleteButton>
+									</ActionsCell>
+								</TableRow>
+							))
+						)}
 					</Table>
 				</TableWrapper>
 			</MainPanel>
+			{showAddModal && (
+				<AddAnnouncementModal
+					isOpen
+					onClose={() => setShowAddModal(false)}
+					selectedEstateId={selectedEstateId ?? undefined}
+				/>
+			)}
+			{editModalOpen && editingAnnouncement && (
+				<EditAnnouncementModal
+					isOpen={editModalOpen}
+					onClose={() => setEditModalOpen(false)}
+					announcement={{
+						_id: editingAnnouncement._id,
+						title: editingAnnouncement.title,
+						content: editingAnnouncement.content,
+						publishedAt: editingAnnouncement.publishedAt,
+						estateId:
+							editingAnnouncement.estateId ?? editingAnnouncement.estate ?? "",
+					}}
+				/>
+			)}
 		</Container>
 	);
 }

@@ -38,18 +38,19 @@ const MenuList = styled.ul`
 	gap: 16px;
 `;
 
-const MenuItem = styled.li.attrs<{ active?: boolean }>(props => ({
-	className: props.active ? "active" : undefined,
-}))<{ active?: boolean }>`
+// TU zmieniamy active na $active!
+const MenuItem = styled.li.attrs<{ $active?: boolean }>(props => ({
+	className: props.$active ? "active" : undefined,
+}))<{ $active?: boolean }>`
 	display: flex;
 	align-items: center;
 	gap: 20px;
 	font-size: 13px;
 	font-family: "Roboto", sans-serif;
-	font-weight: ${props => (props.active ? 800 : 400)};
+	font-weight: ${props => (props.$active ? 800 : 400)};
 	letter-spacing: 0.65px;
 	color: #4d4d4d;
-	background: ${props => (props.active ? "#f3f3f3" : "none")};
+	background: ${props => (props.$active ? "#f3f3f3" : "none")};
 	border-radius: 8px;
 	padding: 8px 12px;
 	cursor: pointer;
@@ -61,7 +62,7 @@ const MenuItem = styled.li.attrs<{ active?: boolean }>(props => ({
 		width: 18px;
 		height: 18px;
 		object-fit: contain;
-		filter: ${props => (props.active ? "grayscale(0%)" : "grayscale(80%)")};
+		filter: ${props => (props.$active ? "grayscale(0%)" : "grayscale(80%)")};
 	}
 `;
 
@@ -160,7 +161,7 @@ const menuItems = [
 	{
 		label: "Panel managera",
 		icon: "/assets/sidebar/building.svg",
-		path: "/dashboard",
+		path: "/panelManager",
 	},
 	{
 		label: "Panel wyboru osiedla",
@@ -180,7 +181,7 @@ const menuItems = [
 	{
 		label: "Zgłoszenia",
 		icon: "/assets/sidebar/fi-rr-file-check.svg",
-		path: "/dashboard/tickets",
+		path: "/ticketsPanel",
 	},
 	{
 		label: "Rozliczenia osiedla",
@@ -255,7 +256,7 @@ export const Sidebar = () => {
 						{menuItems.map(item => (
 							<MenuItem
 								key={item.label}
-								active={
+								$active={
 									(item.path === "/dashboard" &&
 										pathname.startsWith("/dashboard")) ||
 									pathname === item.path
@@ -271,7 +272,7 @@ export const Sidebar = () => {
 						{menuBottomItems.map(item => (
 							<MenuItem
 								key={item.label}
-								active={pathname === item.path}
+								$active={pathname === item.path}
 								onClick={() => router.push(item.path)}>
 								<img src={item.icon} alt='' />
 								{item.label}

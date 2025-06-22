@@ -1,6 +1,6 @@
 import React from "react";
 import styled from "styled-components";
-import { useEstates } from "../../context/EstateContext";
+import { useMain } from "../../context/EstateContext";
 
 // Jeśli używasz Next.js i pliki są w public/, użyj poniższych stringów:
 const AVATAR_SRC = "/assets/top/marcin.png";
@@ -11,11 +11,11 @@ const ICON_SRC = "/assets/top/down.png";
 // import DownIcon from "../../assets/top/anglesmalldown2.png";
 
 const Container = styled.div`
+	width: auto;
+	height: 60px;
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
-	height: 60px;
-	width: 100%;
 	padding: 0 24px;
 	position: relative;
 `;
@@ -70,7 +70,7 @@ const DropdownIcon = styled.img`
 `;
 
 export const HelloTop: React.FC = () => {
-	const { manager } = useEstates();
+	const { manager } = useMain();
 
 	return (
 		<Container>
