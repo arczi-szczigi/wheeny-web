@@ -376,7 +376,7 @@ export const MainProvider: React.FC<{ children: React.ReactNode }> = ({
 			if (selectedEstateId) {
 				try {
 					const residentsRes = await fetch(
-						`${API_URL}/residents?estateId=${selectedEstateId}`,
+						`${API_URL}/flatResidents/estate/${selectedEstateId}`,
 						{ headers: { Authorization: `Bearer ${token}` } }
 					);
 					if (residentsRes.ok) {

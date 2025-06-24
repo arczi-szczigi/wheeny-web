@@ -216,30 +216,37 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 type Resident = { _id: string; flatNumber: string; name: string };
 
 export default function DocumentListBox() {
-	const { estateDocuments, loading, fetchEstateDocuments, deleteDocument } =
-		useDocForResidents();
+	const {
+		estateDocuments,
+		residentDocuments,
+		loading,
+		fetchEstateDocuments,
+		fetchResidentDocumentsForEstate,
+		deleteDocument,
+	} = useDocForResidents();
+
 	const { selectedEstateId } = useMain();
-	const { residents, fetchResidents } = useAnnouncement();
+	const {
+		residents,
+		fetchResidents,
+		loading: residentsLoading,
+		error: residentsError,
+	} = useAnnouncement();
 
 	const [activeTab, setActiveTab] = useState(0);
 	const [search, setSearch] = useState("");
 	const [showEstateModal, setShowEstateModal] = useState(false);
 	const [showResidentModal, setShowResidentModal] = useState(false);
 
-	// ładowanie danych
 	useEffect(() => {
 		if (!selectedEstateId) return;
-		if (activeTab === 0) {
-			fetchEstateDocuments(selectedEstateId);
-		} else {
-			fetchEstateDocuments(selectedEstateId);
+		if (activeTab === 0) fetchEstateDocuments(selectedEstateId);
+		else {
+			fetchResidentDocumentsForEstate(selectedEstateId);
 			fetchResidents(selectedEstateId);
 		}
 	}, [activeTab, selectedEstateId]);
 
-	// filtrowanie:
-	// - estate docs: brak pola resident
-	// - resident docs: posiadają resident
 	const filteredEstateDocs = (estateDocuments || [])
 		.filter(doc => !doc.resident)
 		.filter(doc =>
@@ -248,7 +255,8 @@ export default function DocumentListBox() {
 				  doc.originalName.toLowerCase().includes(search.toLowerCase())
 				: true
 		);
-	const filteredResidentDocs = (estateDocuments || [])
+
+	const filteredResidentDocs = (residentDocuments || [])
 		.filter(doc => !!doc.resident)
 		.filter(doc =>
 			search.trim()
@@ -262,10 +270,11 @@ export default function DocumentListBox() {
 		await deleteDocument(id, "estate");
 		fetchEstateDocuments(selectedEstateId);
 	};
+
 	const handleDeleteResidentDoc = async (id: string) => {
 		if (!selectedEstateId) return;
-		await deleteDocument(id, "estate");
-		fetchEstateDocuments(selectedEstateId);
+		await deleteDocument(id, "resident");
+		fetchResidentDocumentsForEstate(selectedEstateId);
 	};
 
 	return (
@@ -274,7 +283,8 @@ export default function DocumentListBox() {
 				<Header>
 					<Title>Dokumenty</Title>
 					<SubTitle>
-						Przegląd dokumentów osiedla lub wysyłaj indywidualnie zbiorcze.
+						Przegląd ogólny dokumentów dla wszystkich mieszkańców lub wysyłaj
+						indywidualnie dokumenty zbiorcze.
 					</SubTitle>
 				</Header>
 
@@ -286,7 +296,7 @@ export default function DocumentListBox() {
 							height={15}
 							alt=''
 						/>
-						Dokumenty dla osiedla
+						Dokumenty dla osiedla - wszyscy mieszkańcy
 					</TabButton>
 					<TabButton active={activeTab === 1} onClick={() => setActiveTab(1)}>
 						<img
@@ -351,12 +361,12 @@ export default function DocumentListBox() {
 					{activeTab === 0 ? (
 						<Table>
 							<TableHeader>
-								<Th style={{ maxWidth: 35 }} />
-								<Th>Nazwa</Th>
-								<Th>Typ</Th>
+								<Th style={{ maxWidth: 35 }}></Th>
+								<Th>Nazwa dokumentu</Th>
+								<Th>Typ pliku</Th>
 								<Th>Oryginalna nazwa</Th>
-								<Th>Data</Th>
-								<Th style={{ width: 180, flex: "none" }} />
+								<Th>Data dodania</Th>
+								<Th style={{ width: 180, flex: "none" }}></Th>
 							</TableHeader>
 							{loading ? (
 								<TableRow>
@@ -375,9 +385,10 @@ export default function DocumentListBox() {
 									<TableRow key={doc._id}>
 										<Td style={{ maxWidth: 35, cursor: "pointer" }}>
 											<a
-												href={`${API_URL}/documents/${doc._id}/download`}
+												href={`${API_URL}/uploads/${doc.filename}`}
 												target='_blank'
-												rel='noreferrer'>
+												rel='noreferrer'
+												download={doc.originalName}>
 												<img
 													src='/assets/documentsEstate/pdf.png'
 													width={25}
@@ -388,9 +399,10 @@ export default function DocumentListBox() {
 										</Td>
 										<Td>
 											<a
-												href={`${API_URL}/documents/${doc._id}/download`}
+												href={`${API_URL}/uploads/${doc.filename}`}
 												target='_blank'
 												rel='noreferrer'
+												download={doc.originalName}
 												style={{
 													color: "#4D4D4D",
 													textDecoration: "underline",
@@ -426,13 +438,13 @@ export default function DocumentListBox() {
 					) : (
 						<Table>
 							<TableHeader>
-								<Th style={{ maxWidth: 35 }} />
-								<Th>Nazwa</Th>
-								<Th>Typ</Th>
+								<Th style={{ maxWidth: 35 }}></Th>
+								<Th>Nazwa dokumentu</Th>
+								<Th>Typ pliku</Th>
 								<Th>Oryginalna nazwa</Th>
 								<Th>Przypisany do</Th>
-								<Th>Data</Th>
-								<Th style={{ width: 180, flex: "none" }} />
+								<Th>Data dodania</Th>
+								<Th style={{ width: 180, flex: "none" }}></Th>
 							</TableHeader>
 							{loading ? (
 								<TableRow>
@@ -447,60 +459,68 @@ export default function DocumentListBox() {
 									</Td>
 								</TableRow>
 							) : (
-								filteredResidentDocs.map(doc => {
-									const res = residents.find(r => r._id === doc.resident);
-									return (
-										<TableRow key={doc._id}>
-											<Td style={{ maxWidth: 35, cursor: "pointer" }}>
-												<a
-													href={`${API_URL}/documents/${doc._id}/download`}
-													target='_blank'
-													rel='noreferrer'>
-													<img
-														src='/assets/documentsEstate/pdf.png'
-														width={25}
-														height={25}
-														alt='pdf'
-													/>
-												</a>
-											</Td>
-											<Td>
-												<a
-													href={`${API_URL}/documents/${doc._id}/download`}
-													target='_blank'
-													rel='noreferrer'
-													style={{
-														color: "#4D4D4D",
-														textDecoration: "underline",
-													}}>
-													{doc.title}
-												</a>
-											</Td>
-											<Td>
-												{doc.mimetype.replace("application/", "").toUpperCase()}
-											</Td>
-											<Td>{doc.originalName}</Td>
-											<Td>{res ? `m.${res.flatNumber} – ${res.name}` : "-"}</Td>
-											<Td>
-												{doc.createdAt
-													? new Date(doc.createdAt).toLocaleDateString("pl-PL")
-													: ""}
-											</Td>
-											<Td
+								filteredResidentDocs.map(doc => (
+									<TableRow key={doc._id}>
+										<Td style={{ maxWidth: 35, cursor: "pointer" }}>
+											<a
+												href={`${API_URL}/uploads/${doc.filename}`}
+												target='_blank'
+												rel='noreferrer'
+												download={doc.originalName}>
+												<img
+													src='/assets/documentsEstate/pdf.png'
+													width={25}
+													height={25}
+													alt='pdf'
+												/>
+											</a>
+										</Td>
+										<Td>
+											<a
+												href={`${API_URL}/uploads/${doc.filename}`}
+												target='_blank'
+												rel='noreferrer'
+												download={doc.originalName}
 												style={{
-													display: "flex",
-													gap: 10,
-													justifyContent: "flex-end",
+													color: "#4D4D4D",
+													textDecoration: "underline",
 												}}>
-												<EditButton
-													style={{ background: "#E8AE9E" }}
-													onClick={() => handleDeleteResidentDoc(doc._id)}>
-													Usuń dokument
-												</EditButton>
-											</Td>
-										</TableRow>
-									);
-								})
+												{doc.title}
+											</a>
+										</Td>
+										<Td>
+											{doc.mimetype.replace("application/", "").toUpperCase()}
+										</Td>
+										<Td>{doc.originalName}</Td>
+										<Td>
+											{residents.find(r => r._id === doc.resident)
+												? `m.${
+														residents.find(r => r._id === doc.resident)!
+															.flatNumber
+												  } – ${
+														residents.find(r => r._id === doc.resident)!.name
+												  }`
+												: "-"}
+										</Td>
+										<Td>
+											{doc.createdAt
+												? new Date(doc.createdAt).toLocaleDateString("pl-PL")
+												: ""}
+										</Td>
+										<Td
+											style={{
+												display: "flex",
+												gap: 10,
+												justifyContent: "flex-end",
+											}}>
+											<EditButton
+												style={{ background: "#E8AE9E" }}
+												onClick={() => handleDeleteResidentDoc(doc._id)}>
+												Usuń dokument
+											</EditButton>
+										</Td>
+									</TableRow>
+								))
 							)}
 						</Table>
 					)}
@@ -512,11 +532,11 @@ export default function DocumentListBox() {
 						open={showEstateModal}
 						onClose={() => {
 							setShowEstateModal(false);
-							fetchEstateDocuments(selectedEstateId);
+							fetchEstateDocuments(selectedEstateId!);
 						}}
 						onSuccess={() => {
 							setShowEstateModal(false);
-							fetchEstateDocuments(selectedEstateId);
+							fetchEstateDocuments(selectedEstateId!);
 						}}
 					/>
 				)}
@@ -525,16 +545,16 @@ export default function DocumentListBox() {
 						open={showResidentModal}
 						onClose={() => {
 							setShowResidentModal(false);
-							fetchEstateDocuments(selectedEstateId);
+							fetchResidentDocumentsForEstate(selectedEstateId);
 						}}
 						onSuccess={() => {
 							setShowResidentModal(false);
-							fetchEstateDocuments(selectedEstateId);
+							fetchResidentDocumentsForEstate(selectedEstateId);
 						}}
 						estateId={selectedEstateId}
 						residents={residents}
-						residentsLoading={false}
-						residentsError={null}
+						residentsLoading={residentsLoading}
+						residentsError={residentsError}
 					/>
 				)}
 			</MainPanel>

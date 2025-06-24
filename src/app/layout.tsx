@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { MainProvider } from "@/context/EstateContext";
 import { AnnouncementProvider } from "@/context/AnnouncementContext";
+import { DocForResidentsProvider } from "@/context/DocForResidentsContext";
 import ClientWrapper from "./ClientWrapper";
 
 export const metadata: Metadata = {
@@ -18,7 +19,9 @@ export default function RootLayout({
 			<body>
 				<ClientWrapper>
 					<MainProvider>
-						<AnnouncementProvider>{children}</AnnouncementProvider>
+						<AnnouncementProvider>
+							<DocForResidentsProvider>{children}</DocForResidentsProvider>
+						</AnnouncementProvider>
 					</MainProvider>
 				</ClientWrapper>
 			</body>

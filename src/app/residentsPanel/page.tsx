@@ -1,20 +1,20 @@
+// src/app/residentsPanel/page.tsx
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
 import styled from "styled-components";
 import { Sidebar } from "../../components/Sidebar";
 import { HelloTop } from "../../components/top/HelloTop";
-import ResidentsInfoListBox from "../../components/residents/ResidentsInfoListBox";
+import { ResidentsInfoListBox } from "../../components/residents/ResidentsInfoListBox";
+import { useMain } from "@/context/EstateContext";
+import { useAnnouncement } from "@/context/AnnouncementContext";
 
-// Layout z sidebar i główną zawartością
 const PageContainer = styled.div`
 	display: grid;
 	grid-template-columns: 260px 1fr;
 	height: 100vh;
 	width: 100%;
 `;
-
-// Wrapper dla całej treści; ustawia padding i odstępy
 const ContentWrapper = styled.div`
 	display: flex;
 	flex-direction: column;
@@ -23,30 +23,62 @@ const ContentWrapper = styled.div`
 	gap: 24px;
 	overflow-y: auto;
 `;
-
-// Tytuł sekcji Najemcy
 const SectionTitle = styled.h1`
 	font-size: 24px;
 	font-family: Roboto, sans-serif;
 	font-weight: 500;
 	color: #202020;
-	margin: 0; /* reset */
+	margin: 0;
 `;
 
 export default function ResidentsPanelPage() {
+	const { selectedEstateId } = useMain();
+	const {
+		residents,
+		loading,
+		error,
+		fetchResidents,
+		editResident,
+		deleteResident,
+	} = useAnnouncement();
+
+	// Pobieramy raz mieszkańców, gdy zmieni się selectedEstateId
+	useEffect(() => {
+		if (selectedEstateId) {
+			fetchResidents(selectedEstateId);
+		}
+	}, [selectedEstateId, fetchResidents]);
+
+	if (!selectedEstateId) {
+		return (
+			<PageContainer>
+				<Sidebar />
+				<ContentWrapper>
+					<HelloTop />
+					<SectionTitle>Najemcy</SectionTitle>
+					<div style={{ padding: 40 }}>
+						Wybierz osiedle, aby wyświetlić listę najemców.
+					</div>
+				</ContentWrapper>
+			</PageContainer>
+		);
+	}
+
 	return (
 		<PageContainer>
 			<Sidebar />
-
 			<ContentWrapper>
-				{/* Pasek powitania */}
 				<HelloTop />
-
-				{/* Nagłówek sekcji */}
 				<SectionTitle>Najemcy</SectionTitle>
 
-				{/* Lista najemców */}
-				<ResidentsInfoListBox />
+				<ResidentsInfoListBox
+					estateId={selectedEstateId}
+					residents={residents}
+					loading={loading}
+					error={error}
+					editResident={editResident}
+					deleteResident={deleteResident}
+				/>
 			</ContentWrapper>
 		</PageContainer>
 	);

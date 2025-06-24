@@ -143,7 +143,7 @@ export default function LoginPage() {
 			);
 			localStorage.setItem("token", response.data.accessToken);
 			localStorage.setItem("managerId", response.data.managerId);
-			router.push("/panelEstate");
+			router.push("/panelManager");
 		} catch (error: any) {
 			alert("Niepoprawny email lub hasło");
 		} finally {

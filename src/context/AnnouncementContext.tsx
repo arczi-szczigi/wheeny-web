@@ -335,21 +335,29 @@ export const AnnouncementProvider: React.FC<{ children: React.ReactNode }> = ({
 	//     MIESZKAŃCY
 	// =====================
 
+	// AnnouncementContext.tsx
 	const fetchResidents = useCallback(async (estateId: string) => {
 		setLoading(true);
 		setError(null);
 		try {
+			console.log(">>> FETCHUJĘ residents dla estateId:", estateId);
 			const token = localStorage.getItem("token");
+			if (!token) throw new Error("Brak tokena JWT!");
 			const url = `${API_URL}/flatResidents/estate/${estateId}`;
+			console.log(">>> Token:", `Bearer ${token}`);
+			console.log(">>> EstateId:", `${estateId}`);
 			const res = await fetch(url, {
 				headers: { Authorization: `Bearer ${token}` },
 			});
-			if (!res.ok) throw new Error("Błąd pobierania mieszkańców!");
+			console.log(">>> response.status", res.status);
+			if (!res.ok) throw new Error(`HTTP ${res.status}`);
 			const data = await res.json();
+			console.log(">>> Data:", data);
 			setResidents(data || []);
 		} catch (e: any) {
 			setError(e.message || "Błąd pobierania mieszkańców");
 			setResidents([]);
+			console.log(">>> BŁĄD POBIERANIA:", e);
 		} finally {
 			setLoading(false);
 		}

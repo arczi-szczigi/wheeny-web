@@ -1,9 +1,24 @@
+// ResidentsInfoListBox.tsx
 "use client";
+
 import React, { useState, useMemo } from "react";
 import styled from "styled-components";
 import { FiPlus, FiSearch, FiChevronDown } from "react-icons/fi";
-import { useAnnouncement } from "@/context/AnnouncementContext";
 import ResidentsModal from "@/components/modal/ResidentsModal";
+import { Resident } from "@/context/AnnouncementContext";
+
+interface ResidentsInfoListBoxProps {
+	estateId: string;
+	residents: Resident[];
+	loading: boolean;
+	error: string | null;
+	editResident: (
+		id: string,
+		data: Partial<Resident>,
+		estateId: string
+	) => Promise<void>;
+	deleteResident: (id: string, estateId: string) => Promise<void>;
+}
 
 const Container = styled.div`
 	width: 100%;
@@ -14,13 +29,11 @@ const Container = styled.div`
 	flex-direction: column;
 	gap: 18px;
 `;
-
 const ActionsBar = styled.div`
 	display: flex;
 	gap: 18px;
 	width: 100%;
 `;
-
 const AddOwnerButton = styled.button`
 	display: flex;
 	align-items: center;
@@ -38,7 +51,6 @@ const AddOwnerButton = styled.button`
 	cursor: pointer;
 	gap: 8px;
 `;
-
 const SearchInputWrap = styled.div`
 	flex: 1;
 	display: flex;
@@ -49,7 +61,6 @@ const SearchInputWrap = styled.div`
 	padding: 0 20px;
 	height: 40px;
 `;
-
 const SearchInput = styled.input`
 	border: none;
 	outline: none;
@@ -60,7 +71,6 @@ const SearchInput = styled.input`
 	background: transparent;
 	margin-left: 8px;
 `;
-
 const CircleBox = styled.button<{ active?: boolean }>`
 	display: flex;
 	align-items: center;
@@ -77,16 +87,14 @@ const CircleBox = styled.button<{ active?: boolean }>`
 	font-weight: 400;
 	cursor: pointer;
 `;
-
 const TableHead = styled.div`
 	display: flex;
 	align-items: center;
 	gap: 10px;
 	border-bottom: 1px solid #dadada;
-	padding: 10px 0 10px 0;
+	padding: 10px 0;
 	font-family: Roboto, sans-serif;
 `;
-
 const Th = styled.div<{ email?: boolean; phone?: boolean }>`
 	min-width: ${({ email, phone }) =>
 		email ? "250px" : phone ? "130px" : "110px"};
@@ -97,7 +105,6 @@ const Th = styled.div<{ email?: boolean; phone?: boolean }>`
 	letter-spacing: 0.5px;
 	text-align: left;
 `;
-
 const Td = styled.div<{ email?: boolean; phone?: boolean }>`
 	min-width: ${({ email, phone }) =>
 		email ? "250px" : phone ? "130px" : "110px"};
@@ -111,13 +118,11 @@ const Td = styled.div<{ email?: boolean; phone?: boolean }>`
 	overflow: hidden;
 	text-overflow: ellipsis;
 `;
-
 const ResidentsList = styled.div`
 	display: flex;
 	flex-direction: column;
 	gap: 8px;
 `;
-
 const ResidentRow = styled.div`
 	display: flex;
 	align-items: center;
@@ -127,13 +132,11 @@ const ResidentRow = styled.div`
 	border-bottom: 1px solid #dadada;
 	font-family: Roboto, sans-serif;
 `;
-
 const Actions = styled.div`
 	display: flex;
 	gap: 10px;
 	margin-left: 20px;
 `;
-
 const EditButton = styled.button`
 	background: #d9d9d9;
 	border: none;
@@ -146,7 +149,6 @@ const EditButton = styled.button`
 	letter-spacing: 0.5px;
 	cursor: pointer;
 `;
-
 const DeleteButton = styled.button`
 	background: #e8ae9e;
 	border: none;
@@ -159,7 +161,6 @@ const DeleteButton = styled.button`
 	letter-spacing: 0.5px;
 	cursor: pointer;
 `;
-
 const EditInput = styled.input`
 	width: 95%;
 	padding: 2px 8px;
@@ -170,65 +171,46 @@ const EditInput = styled.input`
 	color: #202020;
 `;
 
-export const ResidentsInfoListBox: React.FC<{ estateId: string }> = ({
+export const ResidentsInfoListBox: React.FC<ResidentsInfoListBoxProps> = ({
 	estateId,
+	residents,
+	loading,
+	error,
+	editResident,
+	deleteResident,
 }) => {
-	const {
-		residents,
-		loading,
-		error,
-		fetchResidents,
-		deleteResident,
-		editResident,
-	} = useAnnouncement();
-
 	const [search, setSearch] = useState<string>("");
 	const [modalOpen, setModalOpen] = useState(false);
 	const [editId, setEditId] = useState<string | null>(null);
-	const [editData, setEditData] = useState<any>({});
+	const [editData, setEditData] = useState<Partial<Resident>>({});
 	const [editLoading, setEditLoading] = useState(false);
 	const [deleteLoadingId, setDeleteLoadingId] = useState<string | null>(null);
 
-	React.useEffect(() => {
-		fetchResidents(estateId);
-		// eslint-disable-next-line
-	}, [estateId, modalOpen]);
-
 	const filteredResidents = useMemo(() => {
 		if (!search.trim()) return residents;
-		const searchLower = search.toLowerCase();
+		const lower = search.toLowerCase();
 		return residents.filter(
-			(r: any) =>
-				(r.flatNumber?.toString() ?? "").toLowerCase().includes(searchLower) ||
-				(r.name ?? "").toLowerCase().includes(searchLower) ||
-				(r.email ?? "").toLowerCase().includes(searchLower) ||
-				(r.phone ?? "").toLowerCase().includes(searchLower)
+			r =>
+				`${r.flatNumber}`.toLowerCase().includes(lower) ||
+				(r.name ?? "").toLowerCase().includes(lower) ||
+				(r.email ?? "").toLowerCase().includes(lower) ||
+				(r.phone ?? "").toLowerCase().includes(lower)
 		);
 	}, [residents, search]);
 
 	const handleDelete = async (id: string) => {
-		if (!window.confirm("Na pewno usunąć mieszkańca?")) return;
+		if (!confirm("Na pewno usunąć mieszkańca?")) return;
 		setDeleteLoadingId(id);
-		try {
-			await deleteResident(id, estateId);
-		} catch (e) {}
+		await deleteResident(id, estateId);
 		setDeleteLoadingId(null);
 	};
 
-	const handleEdit = (r: any) => {
-		setEditId(r._id);
-		setEditData(r);
-	};
-	const handleEditChange = (field: string, value: any) => {
-		setEditData((prev: any) => ({ ...prev, [field]: value }));
-	};
 	const handleEditSave = async () => {
+		if (!editId) return;
 		setEditLoading(true);
-		try {
-			await editResident(editId!, editData, estateId);
-			setEditId(null);
-			setEditData({});
-		} catch (e) {}
+		await editResident(editId, editData, estateId);
+		setEditId(null);
+		setEditData({});
 		setEditLoading(false);
 	};
 
@@ -236,8 +218,7 @@ export const ResidentsInfoListBox: React.FC<{ estateId: string }> = ({
 		<Container>
 			<ActionsBar>
 				<AddOwnerButton onClick={() => setModalOpen(true)}>
-					<FiPlus size={16} />
-					Dodaj właściciela/i
+					<FiPlus size={16} /> Dodaj właściciela/i
 				</AddOwnerButton>
 				<SearchInputWrap>
 					<FiSearch size={16} color='#9d9d9d' />
@@ -248,24 +229,10 @@ export const ResidentsInfoListBox: React.FC<{ estateId: string }> = ({
 					/>
 				</SearchInputWrap>
 				<CircleBox>
-					<img
-						src='/assets/announcmentPanel/filter.png'
-						alt='filter'
-						width={25}
-						height={25}
-					/>
-					Filtrowanie
-					<FiChevronDown size={16} />
+					Filtrowanie <FiChevronDown size={16} />
 				</CircleBox>
 				<CircleBox>
-					<img
-						src='/assets/announcmentPanel/filter.png'
-						alt='sort'
-						width={25}
-						height={25}
-					/>
-					Sortowanie
-					<FiChevronDown size={16} />
+					Sortowanie <FiChevronDown size={16} />
 				</CircleBox>
 			</ActionsBar>
 			<TableHead>
@@ -273,11 +240,11 @@ export const ResidentsInfoListBox: React.FC<{ estateId: string }> = ({
 				<Th>Imię i Nazwisko</Th>
 				<Th email>Adres e-mail</Th>
 				<Th phone>Telefon</Th>
-				<Th>Metraż mieszkania</Th>
+				<Th>Metraż</Th>
 				<Th>Garaż</Th>
-				<Th>Komórka lokatorska</Th>
-				<Th>Zgoda na aplikację</Th>
-				<Th style={{ minWidth: 180, flex: "none" }}></Th>
+				<Th>Komórka</Th>
+				<Th>Zgoda</Th>
+				<Th style={{ minWidth: 180, flex: "none" }} />
 			</TableHead>
 			<ResidentsList>
 				{loading ? (
@@ -287,61 +254,92 @@ export const ResidentsInfoListBox: React.FC<{ estateId: string }> = ({
 				) : filteredResidents.length === 0 ? (
 					<Td>Brak wyników.</Td>
 				) : (
-					filteredResidents.map((r: any, idx: number) => (
-						<ResidentRow key={r._id || idx}>
+					filteredResidents.map(r => (
+						<ResidentRow key={r._id}>
 							{editId === r._id ? (
 								<>
 									<Td>
 										<EditInput
-											value={editData.flatNumber}
+											value={editData.flatNumber || ""}
 											onChange={e =>
-												handleEditChange("flatNumber", e.target.value)
+												setEditData(prev => ({
+													...prev,
+													flatNumber: e.target.value,
+												}))
 											}
 										/>
 									</Td>
 									<Td>
 										<EditInput
-											value={editData.name}
-											onChange={e => handleEditChange("name", e.target.value)}
+											value={editData.name || ""}
+											onChange={e =>
+												setEditData(prev => ({ ...prev, name: e.target.value }))
+											}
 										/>
 									</Td>
 									<Td email>
 										<EditInput
-											value={editData.email}
-											onChange={e => handleEditChange("email", e.target.value)}
+											value={editData.email || ""}
+											onChange={e =>
+												setEditData(prev => ({
+													...prev,
+													email: e.target.value,
+												}))
+											}
 										/>
 									</Td>
 									<Td phone>
 										<EditInput
-											value={editData.phone}
-											onChange={e => handleEditChange("phone", e.target.value)}
-										/>
-									</Td>
-									<Td>
-										<EditInput
-											value={editData.area}
-											onChange={e => handleEditChange("area", e.target.value)}
-										/>
-									</Td>
-									<Td>
-										<EditInput
-											value={editData.garage}
-											onChange={e => handleEditChange("garage", e.target.value)}
-										/>
-									</Td>
-									<Td>
-										<EditInput
-											value={editData.storage}
+											value={editData.phone || ""}
 											onChange={e =>
-												handleEditChange("storage", e.target.value)
+												setEditData(prev => ({
+													...prev,
+													phone: e.target.value,
+												}))
 											}
 										/>
 									</Td>
 									<Td>
 										<EditInput
-											value={editData.appConsent}
+											value={editData.area?.toString() || ""}
 											onChange={e =>
-												handleEditChange("appConsent", e.target.value)
+												setEditData(prev => ({
+													...prev,
+													area: Number(e.target.value),
+												}))
+											}
+										/>
+									</Td>
+									<Td>
+										<EditInput
+											value={editData.garage || ""}
+											onChange={e =>
+												setEditData(prev => ({
+													...prev,
+													garage: e.target.value,
+												}))
+											}
+										/>
+									</Td>
+									<Td>
+										<EditInput
+											value={editData.storage || ""}
+											onChange={e =>
+												setEditData(prev => ({
+													...prev,
+													storage: e.target.value,
+												}))
+											}
+										/>
+									</Td>
+									<Td>
+										<EditInput
+											value={editData.appConsent || ""}
+											onChange={e =>
+												setEditData(prev => ({
+													...prev,
+													appConsent: e.target.value,
+												}))
 											}
 										/>
 									</Td>
@@ -349,11 +347,7 @@ export const ResidentsInfoListBox: React.FC<{ estateId: string }> = ({
 										<EditButton onClick={handleEditSave} disabled={editLoading}>
 											Zapisz
 										</EditButton>
-										<DeleteButton
-											onClick={() => {
-												setEditId(null);
-												setEditData({});
-											}}>
+										<DeleteButton onClick={() => setEditId(null)}>
 											Anuluj
 										</DeleteButton>
 									</Actions>
@@ -372,13 +366,17 @@ export const ResidentsInfoListBox: React.FC<{ estateId: string }> = ({
 									<Td>{r.storage}</Td>
 									<Td>{r.appConsent}</Td>
 									<Actions>
-										<EditButton onClick={() => handleEdit(r)}>
-											Edytuj dane
+										<EditButton
+											onClick={() => {
+												setEditId(r._id);
+												setEditData(r);
+											}}>
+											Edytuj
 										</EditButton>
 										<DeleteButton
 											onClick={() => handleDelete(r._id)}
 											disabled={deleteLoadingId === r._id}>
-											{deleteLoadingId === r._id ? "Usuwam..." : "Usuń dane"}
+											{deleteLoadingId === r._id ? "Usuwam..." : "Usuń"}
 										</DeleteButton>
 									</Actions>
 								</>
@@ -387,7 +385,6 @@ export const ResidentsInfoListBox: React.FC<{ estateId: string }> = ({
 					))
 				)}
 			</ResidentsList>
-			{/* Modal zbiorczego dodawania */}
 			<ResidentsModal
 				open={modalOpen}
 				onClose={() => setModalOpen(false)}
