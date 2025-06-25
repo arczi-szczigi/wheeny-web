@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
+import React from "react";
+import ThemeRegistry from "./ThemeRegistry";
+import ClientWrapper from "./ClientWrapper";
 import { MainProvider } from "@/context/EstateContext";
 import { AnnouncementProvider } from "@/context/AnnouncementContext";
 import { DocForResidentsProvider } from "@/context/DocForResidentsContext";
-import ClientWrapper from "./ClientWrapper";
 
 export const metadata: Metadata = {
 	title: "Manager Wheeny Panel",
@@ -17,13 +19,15 @@ export default function RootLayout({
 	return (
 		<html lang='pl'>
 			<body>
-				<ClientWrapper>
-					<MainProvider>
-						<AnnouncementProvider>
-							<DocForResidentsProvider>{children}</DocForResidentsProvider>
-						</AnnouncementProvider>
-					</MainProvider>
-				</ClientWrapper>
+				<ThemeRegistry>
+					<ClientWrapper>
+						<MainProvider>
+							<AnnouncementProvider>
+								<DocForResidentsProvider>{children}</DocForResidentsProvider>
+							</AnnouncementProvider>
+						</MainProvider>
+					</ClientWrapper>
+				</ThemeRegistry>
 			</body>
 		</html>
 	);
