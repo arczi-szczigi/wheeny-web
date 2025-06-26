@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import React from "react";
-import ThemeRegistry from "./ThemeRegistry";
+import StyledComponentsRegistry from "./StyledComponentsRegistry"; // lub './lib/StyledComponentsRegistry' jeśli trzymasz w lib
 import ClientWrapper from "./ClientWrapper";
 import { MainProvider } from "@/context/EstateContext";
 import { AnnouncementProvider } from "@/context/AnnouncementContext";
@@ -19,7 +19,7 @@ export default function RootLayout({
 	return (
 		<html lang='pl'>
 			<body>
-				<ThemeRegistry>
+				<StyledComponentsRegistry>
 					<ClientWrapper>
 						<MainProvider>
 							<AnnouncementProvider>
@@ -27,7 +27,7 @@ export default function RootLayout({
 							</AnnouncementProvider>
 						</MainProvider>
 					</ClientWrapper>
-				</ThemeRegistry>
+				</StyledComponentsRegistry>
 			</body>
 		</html>
 	);
