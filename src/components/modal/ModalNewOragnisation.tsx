@@ -255,7 +255,7 @@ const ModalNewOrganisation: React.FC<ModalNewOrganisationProps> = ({
 				{success ? (
 					<>
 						<SuccessMsg>
-							✅ Organizacja została dodana.
+							Organizacja została dodana !
 							<br />
 							Dziękujemy!
 						</SuccessMsg>

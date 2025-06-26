@@ -17,6 +17,8 @@ interface AddEstateModalProps {
 	token: string;
 }
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+
 // ======== STYLE ========
 const Overlay = styled.div`
 	position: fixed;
@@ -229,7 +231,7 @@ const AddEstateModal: React.FC<AddEstateModalProps> = ({
 		}
 
 		try {
-			const res = await fetch("http://localhost:8080/estates", {
+			const res = await fetch(`${API_URL}/estates`, {
 				method: "POST",
 				headers: {
 					"Content-Type": "application/json",
@@ -294,7 +296,7 @@ const AddEstateModal: React.FC<AddEstateModalProps> = ({
 				{success ? (
 					<>
 						<SuccessMsg>
-							✅ Osiedle zostało dodane!
+							Osiedle zostało dodane!
 							<br />
 							Dziękujemy!
 						</SuccessMsg>
