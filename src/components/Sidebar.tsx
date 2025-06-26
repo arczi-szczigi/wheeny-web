@@ -258,6 +258,7 @@ export const Sidebar = () => {
 								key={item.label}
 								$active={
 									(item.path === "/dashboard" &&
+										typeof pathname === "string" &&
 										pathname.startsWith("/dashboard")) ||
 									pathname === item.path
 								}
