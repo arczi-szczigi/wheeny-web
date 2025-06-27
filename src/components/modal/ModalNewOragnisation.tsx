@@ -153,12 +153,40 @@ const ConfirmButton = styled.button`
 	}
 `;
 
-const SuccessMsg = styled.div`
-	margin: 40px 0 0 0;
-	font-size: 22px;
-	color: #32a852;
-	text-align: center;
+const LoaderWrapper = styled.div`
+	width: 100%;
+	height: 320px;
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	align-items: center;
+	background: #ffd100;
+	border-radius: 16px;
+`;
+
+const Loader = styled.div`
+	margin-bottom: 24px;
+	width: 48px;
+	height: 48px;
+	border: 6px solid #fff;
+	border-top: 6px solid #232323;
+	border-radius: 50%;
+	animation: spin 1s linear infinite;
+	@keyframes spin {
+		0% {
+			transform: rotate(0deg);
+		}
+		100% {
+			transform: rotate(360deg);
+		}
+	}
+`;
+
+const LoaderText = styled.div`
+	font-size: 24px;
 	font-weight: 700;
+	color: #232323;
+	text-align: center;
 `;
 
 const ErrorMsg = styled.div`
@@ -175,10 +203,9 @@ interface ModalNewOrganisationProps {
 	createOrganisation: (
 		data: Omit<Organisation, "_id" | "estates" | "createdAt" | "updatedAt">
 	) => Promise<void>;
-	onSuccess?: () => void; // <-- dodany prop!
+	onSuccess?: () => void;
 }
 
-// ====== COMPONENT ======
 const ModalNewOrganisation: React.FC<ModalNewOrganisationProps> = ({
 	open,
 	onClose,
@@ -197,7 +224,6 @@ const ModalNewOrganisation: React.FC<ModalNewOrganisationProps> = ({
 		buildingNumber: "",
 	});
 	const [loading, setLoading] = useState(false);
-	const [success, setSuccess] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 
 	const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -226,10 +252,9 @@ const ModalNewOrganisation: React.FC<ModalNewOrganisationProps> = ({
 				accountStatus: "unconfirmed",
 				manager: manager._id,
 			});
-			setSuccess(true);
 			setLoading(false);
 			onSuccess?.();
-			// Modal nie zamyka się automatycznie – tylko ręcznie!
+			onClose(); // modal zamyka się po success
 		} catch (err: any) {
 			setError(err.message || "Wystąpił błąd");
 			setLoading(false);
@@ -249,157 +274,151 @@ const ModalNewOrganisation: React.FC<ModalNewOrganisationProps> = ({
 						<Title>Dodaj nową organizację</Title>
 					</TitleRow>
 				</HeaderRow>
-				<Subtitle>
-					Wprowadź dane firmy, aby dodać ją do swojego panelu zarządcy.
-				</Subtitle>
-				{success ? (
-					<>
-						<SuccessMsg>
-							Organizacja została dodana !
-							<br />
-							Dziękujemy!
-						</SuccessMsg>
-						<Actions>
-							<ConfirmButton type='button' onClick={onClose}>
-								Zamknij
-							</ConfirmButton>
-						</Actions>
-					</>
+				{loading ? (
+					<LoaderWrapper>
+						<Loader />
+						<LoaderText>Dodawanie organizacji...</LoaderText>
+					</LoaderWrapper>
 				) : (
-					<form onSubmit={handleSubmit} autoComplete='off'>
-						<FieldsGrid>
-							<FieldBox>
-								<label>
-									Nazwa firmy
-									<InputRow>
-										<IconInput>
-											<FiHash />
-										</IconInput>
-										<Input
-											name='companyName'
-											value={form.companyName}
-											onChange={handleChange}
-											placeholder='Wpisz nazwę firmy'
-											required
-										/>
-									</InputRow>
-								</label>
-							</FieldBox>
-							<FieldBox>
-								<label>
-									E-mail firmy
-									<InputRow>
-										<IconInput>
-											<FiMail />
-										</IconInput>
-										<Input
-											name='email'
-											type='email'
-											value={form.email}
-											onChange={handleChange}
-											placeholder='Wpisz e-mail firmy'
-											required
-										/>
-									</InputRow>
-								</label>
-							</FieldBox>
-							<FieldBox>
-								<label>
-									Numer telefonu
-									<InputRow>
-										<IconInput>
-											<FiPhone />
-										</IconInput>
-										<Input
-											name='phone'
-											value={form.phone}
-											onChange={handleChange}
-											placeholder='Podaj numer telefonu'
-											required
-										/>
-									</InputRow>
-								</label>
-							</FieldBox>
-							<FieldBox>
-								<label>
-									Miasto
-									<InputRow>
-										<IconInput>
-											<FiMapPin />
-										</IconInput>
-										<Input
-											name='city'
-											value={form.city}
-											onChange={handleChange}
-											placeholder='Miasto'
-											required
-										/>
-									</InputRow>
-								</label>
-							</FieldBox>
-							<FieldBox>
-								<label>
-									Kod pocztowy
-									<InputRow>
-										<IconInput>
-											<FiMapPin />
-										</IconInput>
-										<Input
-											name='zipCode'
-											value={form.zipCode}
-											onChange={handleChange}
-											placeholder='Kod pocztowy'
-											required
-										/>
-									</InputRow>
-								</label>
-							</FieldBox>
-							<FieldBox>
-								<label>
-									Ulica
-									<InputRow>
-										<IconInput>
-											<FiMapPin />
-										</IconInput>
-										<Input
-											name='street'
-											value={form.street}
-											onChange={handleChange}
-											placeholder='Ulica'
-											required
-										/>
-									</InputRow>
-								</label>
-							</FieldBox>
-							<FieldBox>
-								<label>
-									Nr budynku
-									<InputRow>
-										<IconInput>
-											<FiHome />
-										</IconInput>
-										<Input
-											name='buildingNumber'
-											value={form.buildingNumber}
-											onChange={handleChange}
-											placeholder='Nr budynku'
-											required
-										/>
-									</InputRow>
-								</label>
-							</FieldBox>
-						</FieldsGrid>
-						<Actions>
-							<CancelButton type='button' onClick={onClose}>
-								Anuluj
-							</CancelButton>
-							<ConfirmButton type='submit' disabled={loading}>
-								{loading ? "Dodawanie..." : "Dodaj organizację"}
-							</ConfirmButton>
-						</Actions>
-					</form>
+					<>
+						<Subtitle>
+							Wprowadź dane firmy, aby dodać ją do swojego panelu zarządcy.
+						</Subtitle>
+						<form onSubmit={handleSubmit} autoComplete='off'>
+							<FieldsGrid>
+								<FieldBox>
+									<label>
+										Nazwa firmy
+										<InputRow>
+											<IconInput>
+												<FiHash />
+											</IconInput>
+											<Input
+												name='companyName'
+												value={form.companyName}
+												onChange={handleChange}
+												placeholder='Wpisz nazwę firmy'
+												required
+											/>
+										</InputRow>
+									</label>
+								</FieldBox>
+								<FieldBox>
+									<label>
+										E-mail firmy
+										<InputRow>
+											<IconInput>
+												<FiMail />
+											</IconInput>
+											<Input
+												name='email'
+												type='email'
+												value={form.email}
+												onChange={handleChange}
+												placeholder='Wpisz e-mail firmy'
+												required
+											/>
+										</InputRow>
+									</label>
+								</FieldBox>
+								<FieldBox>
+									<label>
+										Numer telefonu
+										<InputRow>
+											<IconInput>
+												<FiPhone />
+											</IconInput>
+											<Input
+												name='phone'
+												value={form.phone}
+												onChange={handleChange}
+												placeholder='Podaj numer telefonu'
+												required
+											/>
+										</InputRow>
+									</label>
+								</FieldBox>
+								<FieldBox>
+									<label>
+										Miasto
+										<InputRow>
+											<IconInput>
+												<FiMapPin />
+											</IconInput>
+											<Input
+												name='city'
+												value={form.city}
+												onChange={handleChange}
+												placeholder='Miasto'
+												required
+											/>
+										</InputRow>
+									</label>
+								</FieldBox>
+								<FieldBox>
+									<label>
+										Kod pocztowy
+										<InputRow>
+											<IconInput>
+												<FiMapPin />
+											</IconInput>
+											<Input
+												name='zipCode'
+												value={form.zipCode}
+												onChange={handleChange}
+												placeholder='Kod pocztowy'
+												required
+											/>
+										</InputRow>
+									</label>
+								</FieldBox>
+								<FieldBox>
+									<label>
+										Ulica
+										<InputRow>
+											<IconInput>
+												<FiMapPin />
+											</IconInput>
+											<Input
+												name='street'
+												value={form.street}
+												onChange={handleChange}
+												placeholder='Ulica'
+												required
+											/>
+										</InputRow>
+									</label>
+								</FieldBox>
+								<FieldBox>
+									<label>
+										Nr budynku
+										<InputRow>
+											<IconInput>
+												<FiHome />
+											</IconInput>
+											<Input
+												name='buildingNumber'
+												value={form.buildingNumber}
+												onChange={handleChange}
+												placeholder='Nr budynku'
+												required
+											/>
+										</InputRow>
+									</label>
+								</FieldBox>
+							</FieldsGrid>
+							<Actions>
+								<CancelButton type='button' onClick={onClose}>
+									Anuluj
+								</CancelButton>
+								<ConfirmButton type='submit' disabled={loading}>
+									{loading ? "Dodawanie..." : "Dodaj organizację"}
+								</ConfirmButton>
+							</Actions>
+						</form>
+						{error && <ErrorMsg>{error}</ErrorMsg>}
+					</>
 				)}
-				{error && <ErrorMsg>{error}</ErrorMsg>}
 			</Modal>
 		</Overlay>
 	);

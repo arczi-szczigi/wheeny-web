@@ -1,19 +1,69 @@
 "use client";
-import styled from "styled-components";
+import styled, { keyframes } from "styled-components";
 import { useState } from "react";
 import axios from "axios";
 import { useRouter } from "next/navigation";
 
+// --- SPINNER LOADER ---
+const spin = keyframes`
+  0% { transform: rotate(0deg);}
+  100% { transform: rotate(360deg);}
+`;
+const LoaderOverlay = styled.div`
+	position: fixed;
+	inset: 0;
+	background: rgba(30, 30, 30, 0.38);
+	backdrop-filter: blur(2px);
+	z-index: 4000;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	flex-direction: column;
+	gap: 16px;
+`;
+const LoaderSpinner = styled.div`
+	width: 64px;
+	height: 64px;
+	border: 7px solid #ffd60044;
+	border-top: 7px solid #ffd600;
+	border-radius: 50%;
+	animation: ${spin} 1.1s linear infinite;
+	margin-bottom: 18px;
+`;
+const LoaderText = styled.div`
+	color: #fff;
+	font-size: 1.15rem;
+	font-weight: 500;
+	letter-spacing: 0.04em;
+	text-shadow: 0 2px 18px #000a;
+`;
+
+// --- SUCCESS MODAL ---
+const SuccessOverlay = styled(LoaderOverlay)`
+	background: rgba(30, 30, 30, 0.6);
+`;
+const SuccessBox = styled.div`
+	background: #fff;
+	border-radius: 18px;
+	padding: 38px 46px 30px 46px;
+	box-shadow: 0 0 40px #0003;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 14px;
+	min-width: 290px;
+	text-align: center; /* <-- dodaj to */
+`;
+
+// --- RESZTA STYLI ---
 const Wrapper = styled.main`
 	min-height: 100vh;
 	display: grid;
 	grid-template-columns: 1fr;
-
 	@media (min-width: 1024px) {
 		grid-template-columns: 1fr 1fr;
 	}
 `;
-
 const Left = styled.div`
 	background: linear-gradient(to bottom, #121212, #2e2e00);
 	color: white;
@@ -21,68 +71,56 @@ const Left = styled.div`
 	flex-direction: column;
 	justify-content: center;
 	padding: 4rem;
-
 	h1 {
 		font-size: 2.2rem;
 		font-weight: 700;
 		margin-bottom: 1.5rem;
 		line-height: 1.3;
 	}
-
 	p {
 		font-size: 1rem;
 		color: #d1d1d1;
 	}
-
 	img {
 		margin-bottom: 2rem;
 		width: 130px;
 	}
 `;
-
 const Right = styled.div`
 	background: #f9f9fb;
 	display: flex;
 	flex-direction: column;
 	justify-content: center;
 	padding: 4rem;
-
 	h2 {
 		font-size: 1.6rem;
 		font-weight: bold;
 		margin-bottom: 0.5rem;
 	}
-
 	p {
 		font-size: 0.95rem;
 		color: #555;
 	}
 `;
-
 const Form = styled.form`
 	display: flex;
 	flex-direction: column;
 	gap: 1.5rem;
 	margin-top: 2rem;
 `;
-
 const GridTwo = styled.div`
 	display: grid;
 	grid-template-columns: 1fr;
-
 	@media (min-width: 768px) {
 		grid-template-columns: 1fr 1fr;
 	}
-
 	gap: 1rem;
 `;
-
 const InputGroup = styled.div`
 	display: flex;
 	flex-direction: column;
 	gap: 0.5rem;
 `;
-
 const Label = styled.label`
 	display: flex;
 	align-items: center;
@@ -90,49 +128,41 @@ const Label = styled.label`
 	font-weight: 500;
 	font-size: 0.9rem;
 	color: #444;
-
 	img {
 		width: 18px;
 		height: 18px;
 	}
 `;
-
 const Input = styled.input`
 	padding: 0.7rem 1rem;
 	border: 1px solid #ccc;
 	border-radius: 8px;
 	font-size: 0.95rem;
 	background: #fff;
-
 	&:focus {
 		outline: 2px solid #ffd600;
 		border-color: transparent;
 	}
 `;
-
 const CheckboxGroup = styled.div`
 	font-size: 0.85rem;
 	color: #555;
 	display: flex;
 	flex-direction: column;
 	gap: 1rem;
-
 	label {
 		display: flex;
 		gap: 0.5rem;
 		align-items: flex-start;
-
 		input {
 			margin-top: 0.2rem;
 		}
-
 		a {
 			color: #0070f3;
 			text-decoration: underline;
 		}
 	}
 `;
-
 const SubmitButton = styled.button`
 	width: 100%;
 	background: #ffd600;
@@ -143,23 +173,31 @@ const SubmitButton = styled.button`
 	border: none;
 	border-radius: 8px;
 	cursor: pointer;
-
 	&:hover {
 		background: #e6c200;
 	}
 `;
-
 const HelpText = styled.div`
 	text-align: right;
 	font-size: 0.85rem;
 	color: #666;
 	padding-top: 1rem;
-
 	a {
 		text-decoration: underline;
 	}
 `;
+const ErrorBox = styled.div`
+	background: #fff4f4;
+	border: 1px solid #ffd2d2;
+	border-radius: 10px;
+	color: #d20000;
+	font-size: 0.99rem;
+	text-align: center;
+	padding: 14px;
+	margin-bottom: 14px;
+`;
 
+// ----- LABELED INPUT -----
 function LabeledInput({
 	icon,
 	label,
@@ -210,6 +248,10 @@ export default function RegisterPage() {
 	const [agreed, setAgreed] = useState(false);
 	const [accepted, setAccepted] = useState(false);
 
+	const [loading, setLoading] = useState(false);
+	const [success, setSuccess] = useState(false);
+	const [error, setError] = useState<string | null>(null);
+
 	const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
 		const { name, value } = e.target;
 		setFormData(prev => ({ ...prev, [name]: value }));
@@ -218,19 +260,33 @@ export default function RegisterPage() {
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
 		if (!agreed || !accepted) {
-			alert("Musisz zaznaczyć wszystkie wymagane zgody.");
+			setError("Musisz zaznaczyć wszystkie wymagane zgody.");
 			return;
 		}
+		setLoading(true);
+		setError(null);
 
 		try {
-			await axios.post(
+			const res = await axios.post(
 				`${process.env.NEXT_PUBLIC_API_URL}/managers/register`,
 				formData
 			);
-			router.push("/login");
-		} catch (err) {
-			console.error("Błąd rejestracji:", err);
-			alert("Nie udało się zarejestrować. Spróbuj ponownie.");
+
+			if (res.status === 201 || res.status === 200) {
+				setSuccess(true);
+				setTimeout(() => {
+					router.push("/login");
+				}, 1400);
+			} else {
+				setError("Błąd rejestracji. Spróbuj ponownie.");
+			}
+		} catch (err: any) {
+			setError(
+				err?.response?.data?.message ||
+					"Nie udało się zarejestrować. Spróbuj ponownie."
+			);
+		} finally {
+			setLoading(false);
 		}
 	};
 
@@ -253,6 +309,7 @@ export default function RegisterPage() {
 				</p>
 
 				<Form onSubmit={handleSubmit}>
+					{error && <ErrorBox>{error}</ErrorBox>}
 					<GridTwo>
 						<LabeledInput
 							icon='buildingIcon.png'
@@ -271,7 +328,6 @@ export default function RegisterPage() {
 							onChange={handleChange}
 						/>
 					</GridTwo>
-
 					<GridTwo>
 						<LabeledInput
 							icon='peopleIcon.png'
@@ -290,7 +346,6 @@ export default function RegisterPage() {
 							onChange={handleChange}
 						/>
 					</GridTwo>
-
 					<GridTwo>
 						<LabeledInput
 							icon='homeIcon.png'
@@ -309,7 +364,6 @@ export default function RegisterPage() {
 							onChange={handleChange}
 						/>
 					</GridTwo>
-
 					<GridTwo>
 						<LabeledInput
 							icon='homeIcon.png'
@@ -328,7 +382,6 @@ export default function RegisterPage() {
 							onChange={handleChange}
 						/>
 					</GridTwo>
-
 					<GridTwo>
 						<LabeledInput
 							icon='peopleIcon.png'
@@ -347,7 +400,6 @@ export default function RegisterPage() {
 							onChange={handleChange}
 						/>
 					</GridTwo>
-
 					<LabeledInput
 						icon='peopleIcon.png'
 						label='Hasło'
@@ -356,7 +408,6 @@ export default function RegisterPage() {
 						value={formData.password}
 						onChange={handleChange}
 					/>
-
 					<CheckboxGroup>
 						<label>
 							<input
@@ -381,14 +432,33 @@ export default function RegisterPage() {
 							</span>
 						</label>
 					</CheckboxGroup>
-
-					<SubmitButton>Zarejestruj konto</SubmitButton>
-
+					<SubmitButton disabled={loading}>Zarejestruj konto</SubmitButton>
 					<HelpText>
 						Problemy z formularzem? <a href='#'>Poproś o pomoc</a>
 					</HelpText>
 				</Form>
 			</Right>
+
+			{/* LOADER - w trakcie rejestracji */}
+			{loading && (
+				<LoaderOverlay>
+					<LoaderSpinner />
+					<LoaderText>Rejestracja konta w toku...</LoaderText>
+				</LoaderOverlay>
+			)}
+
+			{/* SUKCES */}
+			{success && (
+				<SuccessOverlay>
+					<SuccessBox>
+						<div
+							style={{ color: "#232323", fontWeight: 600, fontSize: "1.1rem" }}>
+							Konto zarejestrowane! <br />
+							Zaraz zostaniesz przekierowany do logowania.
+						</div>
+					</SuccessBox>
+				</SuccessOverlay>
+			)}
 		</Wrapper>
 	);
 }

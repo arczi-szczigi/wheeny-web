@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Sidebar } from "@/components/Sidebar";
 import styled from "styled-components";
 import { CardOrganization } from "@/components/panelManager/CompanyCard";
@@ -35,43 +35,104 @@ const PageContent = styled.div`
 	position: relative;
 `;
 
+// --- FINAL STICKY HEADER --- //
+const StickyHeaderWrapper = styled.div`
+	position: sticky;
+	top: 0;
+	width: 100%;
+	z-index: 15;
+	background: #e7e7e7;
+	box-shadow: 0 6px 16px -12px #0002;
+	transition: box-shadow 0.2s;
+`;
+
+const StickyInner = styled.div`
+	max-width: 1300px;
+	width: 100%;
+	margin: 0 auto;
+	padding-top: 28px;
+	padding-bottom: 2px;
+	background: #e7e7e7;
+	display: flex;
+	flex-direction: column;
+	gap: 0;
+`;
+
+const StickySpacer = styled.div`
+	height: 20px;
+	width: 100%;
+	min-height: 20px; // WAŻNE
+	display: block; // WAŻNE
+	background: transparent;
+`;
+
+// --- RESZTA LAYOUTU --- //
+const TopLine = styled.hr`
+	width: 100%;
+	border: none;
+	border-bottom: 1.5px solid #dadada;
+	margin: 18px 0 24px 0;
+`;
+
 const MainColumn = styled.div`
 	width: 100%;
-	min-width: 1300px;
 	max-width: 1300px;
 	margin: 0 auto;
 	display: flex;
 	flex-direction: column;
-	gap: 12px;
+	align-items: center;
+	gap: 16px;
 `;
 
-const TopBar = styled.div`
+const CardsWrapper = styled.div`
 	width: 100%;
 	display: flex;
-	justify-content: center;
+	flex-direction: column;
+	align-items: center;
+	gap: 16px;
+	padding-bottom: 30px;
 `;
 
-// Boks na środku ekranu (nad całością, tam gdzie modal)
-const CenterSuccessBox = styled.div`
+const LoaderOverlay = styled.div`
 	position: fixed;
-	top: 50%;
-	left: 50%;
-	transform: translate(-50%, -50%);
-	background: #ffe066;
-	color: #232323;
-	font-size: 24px;
+	inset: 0;
+	background: rgba(255, 255, 255, 0.6);
+	z-index: 3500;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	backdrop-filter: blur(6px);
+`;
+
+const Loader = styled.div`
+	margin-bottom: 18px;
+	width: 48px;
+	height: 48px;
+	border: 6px solid #ffd100;
+	border-top: 6px solid #232323;
+	border-radius: 50%;
+	animation: spin 1s linear infinite;
+	@keyframes spin {
+		0% {
+			transform: rotate(0deg);
+		}
+		100% {
+			transform: rotate(360deg);
+		}
+	}
+`;
+
+const OverlayText = styled.div`
+	font-size: 26px;
 	font-weight: 700;
-	padding: 36px 60px;
-	border-radius: 20px;
-	box-shadow: 0 0 32px rgba(0, 0, 0, 0.09);
-	z-index: 2500;
+	color: #232323;
 	text-align: center;
-	letter-spacing: 0.5px;
 `;
 
 export default function PanelOrganizationPage() {
 	const [showModal, setShowModal] = useState(false);
-	const [successBoxVisible, setSuccessBoxVisible] = useState(false);
+	const [isCreatingOrganisation, setIsCreatingOrganisation] = useState(false);
+	const [minDelayDone, setMinDelayDone] = useState(false);
 
 	const {
 		organisations,
@@ -82,16 +143,36 @@ export default function PanelOrganizationPage() {
 		createOrganisation,
 	} = useMain();
 
+	// Pokazuj overlay minimum 2s
+	useEffect(() => {
+		let timeout: NodeJS.Timeout | null = null;
+		if (isCreatingOrganisation) {
+			setMinDelayDone(false);
+			timeout = setTimeout(() => setMinDelayDone(true), 2000);
+		} else {
+			setMinDelayDone(false);
+			if (timeout) clearTimeout(timeout);
+		}
+		return () => {
+			if (timeout) clearTimeout(timeout);
+		};
+	}, [isCreatingOrganisation]);
+
+	// Overlay znika po dodaniu organizacji I po min. 2 sekundach
+	useEffect(() => {
+		if (isCreatingOrganisation && organisations.length > 0 && minDelayDone) {
+			setIsCreatingOrganisation(false);
+		}
+	}, [organisations.length, isCreatingOrganisation, minDelayDone]);
+
+	const handleSuccess = () => {
+		setShowModal(false);
+		setIsCreatingOrganisation(true);
+	};
+
 	// --- Ładowanie / błąd
 	if (loading) return <div>Ładowanie...</div>;
 	if (error) return <div style={{ color: "red" }}>{error}</div>;
-
-	// Callback, który przekazujesz do modala
-	const handleSuccess = () => {
-		setShowModal(false);
-		setSuccessBoxVisible(true);
-		setTimeout(() => setSuccessBoxVisible(false), 2000); // Box znika po 2s
-	};
 
 	return (
 		<PageWrapper>
@@ -99,58 +180,78 @@ export default function PanelOrganizationPage() {
 				<Sidebar />
 			</SidebarWrapper>
 			<PageContent>
-				{successBoxVisible && (
-					<CenterSuccessBox>
-						✅ Organizacja dodana
-						<br />
-						Dziękujemy!
-					</CenterSuccessBox>
+				{isCreatingOrganisation && (
+					<LoaderOverlay>
+						<div
+							style={{
+								display: "flex",
+								flexDirection: "column",
+								alignItems: "center",
+							}}>
+							<Loader />
+							<OverlayText>Dodawanie organizacji...</OverlayText>
+						</div>
+					</LoaderOverlay>
 				)}
-				<MainColumn>
-					<TopBar style={{ margin: "32px 0 0 0" }}>
+				{/* STICKY HEADER */}
+				<StickyHeaderWrapper>
+					<StickyInner>
 						<HelloTop />
-					</TopBar>
-					{/* Pasek wyszukiwania i dodawania */}
-					<SearchBarPanelOrganisation
-						onAddClick={() => setShowModal(true)}
-						onSearch={() => {}} // Dodaj obsługę jeśli chcesz
-					/>
-
+						<TopLine />
+						<SearchBarPanelOrganisation
+							onAddClick={() => setShowModal(true)}
+							onSearch={() => {}}
+						/>
+					</StickyInner>
+				</StickyHeaderWrapper>
+				<StickySpacer />
+				<MainColumn>
 					<ModalNewOrganisation
 						open={showModal}
 						onClose={() => setShowModal(false)}
 						createOrganisation={createOrganisation}
 						onSuccess={handleSuccess}
 					/>
-
-					{/* Lista organizacji */}
-					{organisations.length === 0 && (
-						<div style={{ marginTop: 40, textAlign: "center", color: "#777" }}>
-							Brak organizacji. Dodaj pierwszą firmę!
-						</div>
-					)}
-					{organisations.map(org => (
-						<div key={org._id} style={{ marginTop: 6 }}>
-							<CardOrganization
-								org={{
-									id: org._id,
-									name: org.companyName,
-									address: `${org.address.street} ${org.address.buildingNumber}, ${org.address.zipCode} ${org.address.city}`,
-									registrationDate: org.createdAt
-										? org.createdAt.slice(0, 10).split("-").reverse().join(".")
-										: "",
-									estatesCount: org.estates?.length ?? 0,
-									residentsCount:
-										org.estates?.reduce(
-											(sum, e) => sum + (e.numberOfFlats || 0),
-											0
-										) ?? 0,
-								}}
-								onSelect={() => setSelectedOrganisationId(org._id)}
-								isSelected={selectedOrganisationId === org._id}
-							/>
-						</div>
-					))}
+					<CardsWrapper>
+						{organisations.length === 0 && (
+							<div
+								style={{ marginTop: 40, textAlign: "center", color: "#777" }}>
+								Brak organizacji. Dodaj pierwszą firmę!
+							</div>
+						)}
+						{organisations.map(org => (
+							<div
+								key={org._id}
+								style={{
+									width: "100%",
+									display: "flex",
+									justifyContent: "center",
+								}}>
+								<CardOrganization
+									org={{
+										id: org._id,
+										name: org.companyName,
+										address: `${org.address.street} ${org.address.buildingNumber}, ${org.address.zipCode} ${org.address.city}`,
+										registrationDate: org.createdAt
+											? org.createdAt
+													.slice(0, 10)
+													.split("-")
+													.reverse()
+													.join(".")
+											: "",
+										estatesCount: org.estates?.length ?? 0,
+										residentsCount:
+											org.estates?.reduce(
+												(sum, e) => sum + (e.numberOfFlats || 0),
+												0
+											) ?? 0,
+									}}
+									onSelect={() => setSelectedOrganisationId(org._id)}
+									isSelected={selectedOrganisationId === org._id}
+								/>
+							</div>
+						))}
+					</CardsWrapper>
 				</MainColumn>
 			</PageContent>
 		</PageWrapper>

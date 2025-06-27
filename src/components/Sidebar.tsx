@@ -3,6 +3,8 @@ import styled from "styled-components";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 
+// === STYLE ===
+
 const SidebarWrapper = styled.aside`
 	width: 240px;
 	min-height: 100vh;
@@ -17,10 +19,18 @@ const SidebarWrapper = styled.aside`
 	overflow-y: auto;
 `;
 
+const LogoWrapper = styled.div`
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	width: 100%;
+	margin-bottom: 48px;
+`;
+
 const Logo = styled.img`
 	width: 135px;
-	margin: 0 0 48px 0;
 	user-select: none;
+	display: block;
 `;
 
 const MenuSection = styled.div`
@@ -38,7 +48,10 @@ const MenuList = styled.ul`
 	gap: 16px;
 `;
 
-// TU zmieniamy active na $active!
+const MenuItemBox = styled.div`
+	position: relative;
+`;
+
 const MenuItem = styled.li.attrs<{ $active?: boolean }>(props => ({
 	className: props.$active ? "active" : undefined,
 }))<{ $active?: boolean }>`
@@ -55,6 +68,8 @@ const MenuItem = styled.li.attrs<{ $active?: boolean }>(props => ({
 	padding: 8px 12px;
 	cursor: pointer;
 	transition: background 0.13s;
+	position: relative;
+	z-index: 1;
 	&:hover {
 		background: #fafaf4;
 	}
@@ -64,6 +79,17 @@ const MenuItem = styled.li.attrs<{ $active?: boolean }>(props => ({
 		object-fit: contain;
 		filter: ${props => (props.$active ? "grayscale(0%)" : "grayscale(80%)")};
 	}
+`;
+
+// Żółty wskaźnik (żółty box po prawej)
+const YellowIndicator = styled.div`
+	position: absolute;
+	right: -7px;
+	top: 50%;
+	transform: translateY(-50%);
+	width: 3px;
+	height: 24px;
+	background: #ffd100;
 `;
 
 const Divider = styled.div`
@@ -156,6 +182,8 @@ const SupportDesc = styled.div`
 	margin-top: 1px;
 	letter-spacing: 0.5px;
 `;
+
+// === MENU ===
 
 const menuItems = [
 	{
@@ -250,35 +278,52 @@ export const Sidebar = () => {
 	return (
 		<SidebarWrapper>
 			<div>
-				<Logo src='/assets/sidebar/wheenyLogo.svg' alt='wheeny logo'></Logo>
+				<LogoWrapper>
+					<Logo src='/assets/sidebar/wheenyLogo.svg' alt='wheeny logo' />
+				</LogoWrapper>
 				<MenuSection>
 					<MenuList>
-						{menuItems.map(item => (
-							<MenuItem
-								key={item.label}
-								$active={
-									(item.path === "/dashboard" &&
-										typeof pathname === "string" &&
-										pathname.startsWith("/dashboard")) ||
-									pathname === item.path
-								}
-								onClick={() => router.push(item.path)}>
-								<img src={item.icon} alt='' />
-								{item.label}
-							</MenuItem>
-						))}
+						{menuItems.map((item, i) => {
+							const isActive =
+								(item.path === "/dashboard" &&
+									typeof pathname === "string" &&
+									pathname.startsWith("/dashboard")) ||
+								pathname === item.path;
+							const showDivider =
+								item.label === "Panel managera" ||
+								item.label === "Panel wyboru osiedla";
+							return (
+								<>
+									<MenuItemBox key={item.label}>
+										<MenuItem
+											$active={isActive}
+											onClick={() => router.push(item.path)}>
+											<img src={item.icon} alt='' />
+											{item.label}
+											{isActive && <YellowIndicator />}
+										</MenuItem>
+									</MenuItemBox>
+									{showDivider && <Divider />}
+								</>
+							);
+						})}
 					</MenuList>
 					<Divider />
 					<MenuList>
-						{menuBottomItems.map(item => (
-							<MenuItem
-								key={item.label}
-								$active={pathname === item.path}
-								onClick={() => router.push(item.path)}>
-								<img src={item.icon} alt='' />
-								{item.label}
-							</MenuItem>
-						))}
+						{menuBottomItems.map(item => {
+							const isActive = pathname === item.path;
+							return (
+								<MenuItemBox key={item.label}>
+									<MenuItem
+										$active={isActive}
+										onClick={() => router.push(item.path)}>
+										<img src={item.icon} alt='' />
+										{item.label}
+										{isActive && <YellowIndicator />}
+									</MenuItem>
+								</MenuItemBox>
+							);
+						})}
 					</MenuList>
 				</MenuSection>
 			</div>

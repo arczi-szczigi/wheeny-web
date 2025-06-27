@@ -1,5 +1,3 @@
-// context/EstateContext.tsx
-
 "use client";
 
 import React, {
@@ -8,9 +6,13 @@ import React, {
 	useEffect,
 	useState,
 	useCallback,
+	ReactNode,
 } from "react";
 
-// ===== TYPY DANYCH =====
+// =======================
+//      TYPY DANYCH
+// =======================
+
 export type Address = {
 	city: string;
 	zipCode: string;
@@ -82,11 +84,6 @@ export type TicketCounts = {
 	total: number;
 };
 
-export type TicketsSummary = {
-	byEstate: Record<string, TicketCounts>;
-	global: TicketCounts;
-};
-
 export type Payment = {
 	_id: string;
 	estateId: string;
@@ -135,7 +132,9 @@ export type EstateDocument = {
 	updatedAt: string;
 };
 
-// ===== KONTEXT =====
+// =======================
+//     KONTEXT
+// =======================
 
 type MainContextType = {
 	manager: Manager | null;
@@ -145,8 +144,10 @@ type MainContextType = {
 	selectedEstateId: string | null;
 	setSelectedEstateId: (id: string | null) => void;
 	loading: boolean;
+	logout: () => void;
 	error: string | null;
 	reload: () => void;
+	forceReload: () => void;
 	createOrganisation: (
 		data: Omit<
 			Organisation,
@@ -159,21 +160,18 @@ type MainContextType = {
 		}
 	) => Promise<void>;
 	getEstateById: (id: string) => Estate | undefined;
-
-	// TICKETS!
 	tickets: Ticket[];
-	// Płatności, salda, DOKUMENTY
 	payments: Payment[];
 	balances: Balance[];
 	documents: EstateDocument[];
 	garbageCalendars: GarbageCalendar[];
 	flatResidents: FlatResident[];
-
-	// NOWE FUNKCJE!
 	importPaymentsFile: (file: File) => Promise<void>;
 	importBalancesFile: (file: File) => Promise<void>;
 	updatePayment: (id: string, data: Partial<Payment>) => Promise<void>;
 	updateBalance: (id: string, data: Partial<Balance>) => Promise<void>;
+	token: string | null;
+	login: (token: string) => void;
 };
 
 const MainContext = createContext<MainContextType>({
@@ -184,8 +182,10 @@ const MainContext = createContext<MainContextType>({
 	selectedEstateId: null,
 	setSelectedEstateId: () => {},
 	loading: false,
+	logout: () => {},
 	error: null,
 	reload: () => {},
+	forceReload: () => {},
 	createOrganisation: async () => {},
 	createEstate: async () => {},
 	getEstateById: () => undefined,
@@ -199,13 +199,24 @@ const MainContext = createContext<MainContextType>({
 	importBalancesFile: async () => {},
 	updatePayment: async () => {},
 	updateBalance: async () => {},
+	token: null,
+	login: () => {},
 });
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 
-export const MainProvider: React.FC<{ children: React.ReactNode }> = ({
-	children,
-}) => {
+export const MainProvider = ({ children }: { children: ReactNode }) => {
+	// ========================
+	//  TOKEN + STANY
+	// ========================
+	const getToken = () =>
+		typeof window !== "undefined" ? localStorage.getItem("token") : null;
+
+	const [token, setToken] = useState<string | null>(getToken());
+	useEffect(() => {
+		console.log("[EC] Stan tokena (useState):", token);
+	}, [token]);
+
 	const [manager, setManager] = useState<Manager | null>(null);
 	const [organisations, setOrganisations] = useState<Organisation[]>([]);
 	const [selectedOrganisationId, setSelectedOrganisationId] = useState<
@@ -224,201 +235,226 @@ export const MainProvider: React.FC<{ children: React.ReactNode }> = ({
 	);
 	const [flatResidents, setFlatResidents] = useState<FlatResident[]>([]);
 
-	// ======= Pomocnicze =======
-	const getToken = () =>
-		typeof window !== "undefined" ? localStorage.getItem("token") : null;
-
-	// ---- Wybor org/osiedla z localStorage ----
+	// ==========================
+	// Synchronizacja tokena
+	// ==========================
 	useEffect(() => {
-		const orgId =
-			typeof window !== "undefined"
-				? localStorage.getItem("selectedOrganisationId")
-				: null;
-		if (orgId) setSelectedOrganisationId(orgId);
-		const estateId =
-			typeof window !== "undefined"
-				? localStorage.getItem("selectedEstateId")
-				: null;
-		if (estateId) setSelectedEstateId(estateId);
+		const syncToken = () => {
+			const localToken = getToken();
+			console.log("[EC] [storage] token w localStorage:", localToken);
+			if (localToken !== token) {
+				setToken(localToken);
+				clearAll();
+			}
+		};
+		window.addEventListener("storage", syncToken);
+		return () => window.removeEventListener("storage", syncToken);
+		// eslint-disable-next-line
+	}, [token]);
+
+	// ==========================
+	// LOGIN / LOGOUT / CLEAR
+	// ==========================
+	const login = (newToken: string) => {
+		console.log("[EC] login() ustawia token:", newToken);
+		localStorage.setItem("token", newToken);
+		setToken(newToken);
+		clearAll();
+	};
+
+	const logout = () => {
+		console.log("[EC] logout – kasuję token i stany");
+		localStorage.removeItem("token");
+		localStorage.removeItem("selectedOrganisationId");
+		localStorage.removeItem("selectedEstateId");
+		setToken(null);
+		clearAll();
+	};
+
+	const clearAll = useCallback(() => {
+		console.log("[EC] clearAll – czyszczę wszystkie stany kontekstu");
+		setManager(null);
+		setOrganisations([]);
+		setSelectedOrganisationId(null);
+		setSelectedEstateId(null);
+		setTickets([]);
+		setPayments([]);
+		setBalances([]);
+		setDocuments([]);
+		setGarbageCalendars([]);
+		setFlatResidents([]);
+		setError(null);
 	}, []);
 
+	// ==========================
+	// FORCE RELOAD / RELOAD
+	// ==========================
+	const [forceReloadKey, setForceReloadKey] = useState(0);
+	const forceReload = () => {
+		console.log("[EC] forceReload!");
+		setForceReloadKey(k => k + 1);
+	};
+	const reload = () => {
+		console.log("[EC] reload() – ponowne pobranie danych");
+		setToken(getToken());
+	};
+
+	// ==========================
+	// GŁÓWNY FETCH (TOKEN/RELOAD)
+	// ==========================
 	useEffect(() => {
-		if (selectedOrganisationId && typeof window !== "undefined") {
+		console.log("[EC] useEffect token/forceReloadKey:", {
+			token,
+			forceReloadKey,
+		});
+		clearAll();
+		if (!token) {
+			setLoading(false);
+			return;
+		}
+		const fetchData = async () => {
+			setLoading(true);
+			try {
+				// MANAGER
+				console.log("[EC] Fetch manager z tokenem:", token);
+				const mgrRes = await fetch(`${API_URL}/managers/me`, {
+					headers: { Authorization: `Bearer ${token}` },
+				});
+				if (!mgrRes.ok) throw new Error("Błąd autoryzacji managera");
+				const mgr = await mgrRes.json();
+				setManager(mgr);
+				console.log("[EC] Ustawiam managera:", mgr);
+
+				// ORGANISATIONS (tylko managera!)
+				const orgRes = await fetch(`${API_URL}/organisations/my`, {
+					headers: { Authorization: `Bearer ${token}` },
+				});
+				const orgs: Organisation[] = orgRes.ok ? await orgRes.json() : [];
+				setOrganisations(orgs);
+				console.log("[EC] Ustawiam organisations (tylko moje!):", orgs);
+
+				// WYBÓR PIERWSZEGO
+				if (orgs.length > 0) {
+					setSelectedOrganisationId(orgs[0]._id);
+					if (orgs[0].estates?.length > 0) {
+						setSelectedEstateId(orgs[0].estates[0]._id);
+						console.log(
+							"[EC] Ustawiam selectedEstateId:",
+							orgs[0].estates[0]._id
+						);
+					} else {
+						setSelectedEstateId(null);
+						console.log("[EC] Brak osiedli w pierwszej org");
+					}
+				}
+
+				// TICKETS
+				const tr = await fetch(`${API_URL}/tickets`, {
+					headers: { Authorization: `Bearer ${token}` },
+				});
+				const ticketsData = tr.ok ? await tr.json() : [];
+				setTickets(ticketsData);
+				console.log("[EC] Tickets:", ticketsData);
+			} catch (e: any) {
+				setError(e.message || "Błąd ładowania danych");
+				clearAll();
+			} finally {
+				setLoading(false);
+			}
+		};
+		fetchData();
+		// eslint-disable-next-line
+	}, [token, forceReloadKey, clearAll]);
+
+	// ==========================
+	// FETCH ESTATE DATA
+	// ==========================
+	useEffect(() => {
+		if (!token || !selectedEstateId) {
+			setPayments([]);
+			setBalances([]);
+			setDocuments([]);
+			setGarbageCalendars([]);
+			setFlatResidents([]);
+			console.log("[EC] estateId/token nie ma, czyścimy estate stany");
+			return;
+		}
+		const fetchEstateData = async () => {
+			setLoading(true);
+			try {
+				console.log(
+					"[EC] Fetch estate data dla estateId:",
+					selectedEstateId,
+					"token:",
+					token
+				);
+				const [pr, br, dr, gr, rr] = await Promise.all([
+					fetch(`${API_URL}/payments/estate/${selectedEstateId}`, {
+						headers: { Authorization: `Bearer ${token}` },
+					}),
+					fetch(`${API_URL}/balances/estate/${selectedEstateId}`, {
+						headers: { Authorization: `Bearer ${token}` },
+					}),
+					fetch(`${API_URL}/documents?estateId=${selectedEstateId}`, {
+						headers: { Authorization: `Bearer ${token}` },
+					}),
+					fetch(`${API_URL}/garbage/estate/${selectedEstateId}`, {
+						headers: { Authorization: `Bearer ${token}` },
+					}),
+					fetch(`${API_URL}/flatResidents/estate/${selectedEstateId}`, {
+						headers: { Authorization: `Bearer ${token}` },
+					}),
+				]);
+				setPayments(pr.ok ? await pr.json() : []);
+				setBalances(br.ok ? await br.json() : []);
+				setDocuments(dr.ok ? await dr.json() : []);
+				setGarbageCalendars(gr.ok ? await gr.json() : []);
+				setFlatResidents(rr.ok ? await rr.json() : []);
+				console.log("[EC] Ustawiam estate dane:", {
+					payments: pr.ok ? await pr.clone().json() : [],
+					balances: br.ok ? await br.clone().json() : [],
+					documents: dr.ok ? await dr.clone().json() : [],
+					garbageCalendars: gr.ok ? await gr.clone().json() : [],
+					flatResidents: rr.ok ? await rr.clone().json() : [],
+				});
+			} catch (e) {
+				setPayments([]);
+				setBalances([]);
+				setDocuments([]);
+				setGarbageCalendars([]);
+				setFlatResidents([]);
+				console.log("[EC] Błąd estate fetch:", e);
+			} finally {
+				setLoading(false);
+			}
+		};
+		fetchEstateData();
+		// eslint-disable-next-line
+	}, [selectedEstateId, token]);
+
+	// ==========================
+	// save selection to localStorage
+	// ==========================
+	useEffect(() => {
+		if (selectedOrganisationId) {
 			localStorage.setItem("selectedOrganisationId", selectedOrganisationId);
+			console.log(
+				"[EC] Zapisuję selectedOrganisationId:",
+				selectedOrganisationId
+			);
 		}
 	}, [selectedOrganisationId]);
-
 	useEffect(() => {
-		if (selectedEstateId && typeof window !== "undefined") {
+		if (selectedEstateId) {
 			localStorage.setItem("selectedEstateId", selectedEstateId);
+			console.log("[EC] Zapisuję selectedEstateId:", selectedEstateId);
 		}
 	}, [selectedEstateId]);
 
-	// ====== Pobieranie danych ======
-	const fetchData = useCallback(async () => {
-		setLoading(true);
-		setError(null);
-		try {
-			const token = getToken();
-			if (!token) throw new Error("Brak tokena JWT!");
+	// ==========================
+	//     DODATKOWE METODY
+	// ==========================
 
-			// --- Manager
-			try {
-				const res = await fetch(`${API_URL}/managers/me`, {
-					headers: { Authorization: `Bearer ${token}` },
-				});
-				if (res.ok) {
-					setManager(await res.json());
-				}
-			} catch {
-				setManager(null);
-			}
-
-			// --- Organizacje (z osiedlami)
-			const orgRes = await fetch(`${API_URL}/organisations`, {
-				headers: { Authorization: `Bearer ${token}` },
-			});
-			if (!orgRes.ok) throw new Error("Błąd pobierania organizacji");
-			const orgs: Organisation[] = await orgRes.json();
-			setOrganisations(orgs);
-
-			// --- TICKETS
-			try {
-				const ticketsRes = await fetch(`${API_URL}/tickets`, {
-					headers: { Authorization: `Bearer ${token}` },
-				});
-				if (ticketsRes.ok) {
-					setTickets(await ticketsRes.json());
-				} else {
-					setTickets([]);
-				}
-			} catch {
-				setTickets([]);
-			}
-
-			// --- PAYMENTS (POPRWAIONE NA /payments/estate/:id)
-			if (selectedEstateId) {
-				try {
-					const paymentsRes = await fetch(
-						`${API_URL}/payments/estate/${selectedEstateId}`,
-						{ headers: { Authorization: `Bearer ${token}` } }
-					);
-					if (paymentsRes.ok) {
-						setPayments(await paymentsRes.json());
-					} else {
-						setPayments([]);
-					}
-				} catch {
-					setPayments([]);
-				}
-			} else {
-				setPayments([]);
-			}
-
-			// --- BALANCES (POPRWAIONE NA /balances/estate/:id)
-			if (selectedEstateId) {
-				try {
-					const balancesRes = await fetch(
-						`${API_URL}/balances/estate/${selectedEstateId}`,
-						{ headers: { Authorization: `Bearer ${token}` } }
-					);
-					if (balancesRes.ok) {
-						setBalances(await balancesRes.json());
-					} else {
-						setBalances([]);
-					}
-				} catch {
-					setBalances([]);
-				}
-			} else {
-				setBalances([]);
-			}
-
-			// --- DOKUMENTY
-			if (selectedEstateId) {
-				try {
-					const docsRes = await fetch(
-						`${API_URL}/documents?estateId=${selectedEstateId}`,
-						{ headers: { Authorization: `Bearer ${token}` } }
-					);
-					if (docsRes.ok) {
-						setDocuments(await docsRes.json());
-					} else {
-						setDocuments([]);
-					}
-				} catch {
-					setDocuments([]);
-				}
-			} else {
-				setDocuments([]);
-			}
-
-			// --- GARBAGE KALENDARZE
-			if (selectedEstateId) {
-				try {
-					const garbageRes = await fetch(
-						`${API_URL}/garbage/estate/${selectedEstateId}`,
-						{ headers: { Authorization: `Bearer ${token}` } }
-					);
-					if (garbageRes.ok) {
-						setGarbageCalendars(await garbageRes.json());
-					} else {
-						setGarbageCalendars([]);
-					}
-				} catch {
-					setGarbageCalendars([]);
-				}
-			} else {
-				setGarbageCalendars([]);
-			}
-
-			// --- MIESZKAŃCY
-			if (selectedEstateId) {
-				try {
-					const residentsRes = await fetch(
-						`${API_URL}/flatResidents/estate/${selectedEstateId}`,
-						{ headers: { Authorization: `Bearer ${token}` } }
-					);
-					if (residentsRes.ok) {
-						setFlatResidents(await residentsRes.json());
-					} else {
-						setFlatResidents([]);
-					}
-				} catch {
-					setFlatResidents([]);
-				}
-			} else {
-				setFlatResidents([]);
-			}
-
-			// --- Automatyczny wybór pierwszej organizacji & osiedla
-			if (!selectedOrganisationId && orgs.length > 0) {
-				setSelectedOrganisationId(orgs[0]._id);
-			}
-			if (
-				(!selectedEstateId ||
-					!orgs.some(org =>
-						org.estates.some(e => e._id === selectedEstateId)
-					)) &&
-				orgs.length > 0 &&
-				orgs[0].estates.length > 0
-			) {
-				setSelectedEstateId(orgs[0].estates[0]._id);
-			}
-		} catch (e: any) {
-			setError(e.message || "Błąd ładowania danych");
-		} finally {
-			setLoading(false);
-		}
-	}, [selectedOrganisationId, selectedEstateId]);
-
-	useEffect(() => {
-		fetchData();
-	}, [fetchData]);
-
-	const reload = () => fetchData();
-
-	// ======= Tworzenie organizacji =======
 	const createOrganisation = async (
 		data: Omit<
 			Organisation,
@@ -439,7 +475,7 @@ export const MainProvider: React.FC<{ children: React.ReactNode }> = ({
 				body: JSON.stringify(data),
 			});
 			if (!res.ok) throw new Error("Błąd tworzenia organizacji");
-			await fetchData();
+			forceReload(); // <- NAJWAŻNIEJSZE!
 		} catch (e: any) {
 			setError(e.message || "Błąd tworzenia organizacji");
 		} finally {
@@ -447,7 +483,6 @@ export const MainProvider: React.FC<{ children: React.ReactNode }> = ({
 		}
 	};
 
-	// ======= Tworzenie osiedla =======
 	const createEstate = async (
 		data: Omit<Estate, "_id" | "createdAt" | "updatedAt"> & {
 			organisation: string;
@@ -467,23 +502,20 @@ export const MainProvider: React.FC<{ children: React.ReactNode }> = ({
 				body: JSON.stringify(data),
 			});
 			if (!res.ok) throw new Error("Błąd tworzenia osiedla");
-			await fetchData();
+			forceReload();
 		} catch (e: any) {
 			setError(e.message || "Błąd tworzenia osiedla");
-		} finally {
-			setLoading(false);
+			setLoading(false); // tylko jeśli błąd
 		}
 	};
 
 	const getEstateById = (id: string) => {
 		for (const org of organisations) {
-			const estate = org.estates.find(e => e._id === id);
-			if (estate) return estate;
+			const est = org.estates.find(e => e._id === id);
+			if (est) return est;
 		}
 		return undefined;
 	};
-
-	// ============ NOWE FUNKCJE: import & update payments/balances ============
 
 	const importPaymentsFile = async (file: File) => {
 		if (!selectedEstateId) {
@@ -495,24 +527,18 @@ export const MainProvider: React.FC<{ children: React.ReactNode }> = ({
 		try {
 			const token = getToken();
 			if (!token) throw new Error("Brak tokena JWT!");
-
 			const formData = new FormData();
 			formData.append("file", file);
-
 			const res = await fetch(
 				`${API_URL}/payments/import/${selectedEstateId}`,
 				{
 					method: "POST",
-					headers: {
-						Authorization: `Bearer ${token}`,
-					},
+					headers: { Authorization: `Bearer ${token}` },
 					body: formData,
 				}
 			);
-
 			if (!res.ok) throw new Error("Błąd importu pliku z zaliczkami");
-
-			await fetchData();
+			forceReload();
 		} catch (e: any) {
 			setError(e.message || "Błąd importu pliku z zaliczkami");
 		} finally {
@@ -530,24 +556,18 @@ export const MainProvider: React.FC<{ children: React.ReactNode }> = ({
 		try {
 			const token = getToken();
 			if (!token) throw new Error("Brak tokena JWT!");
-
 			const formData = new FormData();
 			formData.append("file", file);
-
 			const res = await fetch(
 				`${API_URL}/balances/import/${selectedEstateId}`,
 				{
 					method: "POST",
-					headers: {
-						Authorization: `Bearer ${token}`,
-					},
+					headers: { Authorization: `Bearer ${token}` },
 					body: formData,
 				}
 			);
-
 			if (!res.ok) throw new Error("Błąd importu pliku z saldami");
-
-			await fetchData();
+			forceReload();
 		} catch (e: any) {
 			setError(e.message || "Błąd importu pliku z saldami");
 		} finally {
@@ -570,8 +590,7 @@ export const MainProvider: React.FC<{ children: React.ReactNode }> = ({
 				body: JSON.stringify(data),
 			});
 			if (!res.ok) throw new Error("Błąd zapisu zmian w zaliczce");
-
-			await fetchData();
+			forceReload();
 		} catch (e: any) {
 			setError(e.message || "Błąd zapisu zmian w zaliczce");
 		} finally {
@@ -594,8 +613,7 @@ export const MainProvider: React.FC<{ children: React.ReactNode }> = ({
 				body: JSON.stringify(data),
 			});
 			if (!res.ok) throw new Error("Błąd zapisu zmian w saldzie");
-
-			await fetchData();
+			forceReload();
 		} catch (e: any) {
 			setError(e.message || "Błąd zapisu zmian w saldzie");
 		} finally {
@@ -603,7 +621,9 @@ export const MainProvider: React.FC<{ children: React.ReactNode }> = ({
 		}
 	};
 
-	// ===== RETURN PROVIDER =====
+	// ==========================
+	//      PROVIDER
+	// ==========================
 	return (
 		<MainContext.Provider
 			value={{
@@ -614,8 +634,10 @@ export const MainProvider: React.FC<{ children: React.ReactNode }> = ({
 				selectedEstateId,
 				setSelectedEstateId,
 				loading,
+				logout,
 				error,
 				reload,
+				forceReload,
 				createOrganisation,
 				createEstate,
 				getEstateById,
@@ -629,11 +651,16 @@ export const MainProvider: React.FC<{ children: React.ReactNode }> = ({
 				importBalancesFile,
 				updatePayment,
 				updateBalance,
+				token,
+				login,
 			}}>
 			{children}
 		</MainContext.Provider>
 	);
 };
 
-// HOOK
-export const useMain = () => useContext(MainContext);
+export const useMain = () => {
+	const ctx = useContext(MainContext);
+	console.log("[EC] useMain() daje context:", ctx);
+	return ctx;
+};

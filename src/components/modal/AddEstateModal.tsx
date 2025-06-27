@@ -1,5 +1,7 @@
-import React, { useState } from "react";
+// src/components/modal/AddEstateModal.tsx
+import React, { useState, useEffect } from "react";
 import styled from "styled-components";
+import { useMain } from "@/context/EstateContext";
 import {
 	FiHome,
 	FiMapPin,
@@ -8,18 +10,7 @@ import {
 	FiCalendar,
 	FiHash,
 } from "react-icons/fi";
-import { useMain } from "@/context/EstateContext";
 
-interface AddEstateModalProps {
-	open: boolean;
-	onClose: () => void;
-	onSuccess?: () => void;
-	token: string;
-}
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
-
-// ======== STYLE ========
 const Overlay = styled.div`
 	position: fixed;
 	inset: 0;
@@ -176,14 +167,6 @@ const ConfirmButton = styled.button`
 	}
 `;
 
-const SuccessMsg = styled.div`
-	margin: 40px 0 0 0;
-	font-size: 22px;
-	color: #32a852;
-	text-align: center;
-	font-weight: 700;
-`;
-
 const ErrorMsg = styled.div`
 	margin: 10px 0 0 0;
 	font-size: 15px;
@@ -191,15 +174,19 @@ const ErrorMsg = styled.div`
 	text-align: center;
 `;
 
-// ============ KOMPONENT ============
+// ========== PROPS ==========
+interface AddEstateModalProps {
+	open: boolean;
+	onClose: () => void;
+	onSuccess: () => void;
+}
 
 const AddEstateModal: React.FC<AddEstateModalProps> = ({
 	open,
 	onClose,
 	onSuccess,
-	token,
 }) => {
-	const { selectedOrganisationId } = useMain();
+	const { selectedOrganisationId, createEstate } = useMain();
 
 	const [form, setForm] = useState({
 		name: "",
@@ -212,8 +199,25 @@ const AddEstateModal: React.FC<AddEstateModalProps> = ({
 		numberOfFlats: "",
 	});
 	const [loading, setLoading] = useState(false);
-	const [success, setSuccess] = useState(false);
 	const [error, setError] = useState<string | null>(null);
+
+	// reset po zamknięciu
+	useEffect(() => {
+		if (!open) {
+			setForm({
+				name: "",
+				city: "",
+				zipCode: "",
+				street: "",
+				buildingNumber: "",
+				bankAccountNumber: "",
+				rentDueDate: "",
+				numberOfFlats: "",
+			});
+			setError(null);
+			setLoading(false);
+		}
+	}, [open]);
 
 	const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
 		setForm({ ...form, [e.target.name]: e.target.value });
@@ -221,8 +225,8 @@ const AddEstateModal: React.FC<AddEstateModalProps> = ({
 
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
-		setLoading(true);
 		setError(null);
+		setLoading(true);
 
 		if (!selectedOrganisationId) {
 			setError("Nie wybrano organizacji dla osiedla!");
@@ -231,36 +235,21 @@ const AddEstateModal: React.FC<AddEstateModalProps> = ({
 		}
 
 		try {
-			const res = await fetch(`${API_URL}/estates`, {
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
-					Authorization: `Bearer ${token}`,
+			await createEstate({
+				name: form.name,
+				address: {
+					city: form.city,
+					zipCode: form.zipCode,
+					street: form.street,
+					buildingNumber: form.buildingNumber,
 				},
-				body: JSON.stringify({
-					name: form.name,
-					address: {
-						city: form.city,
-						zipCode: form.zipCode,
-						street: form.street,
-						buildingNumber: form.buildingNumber,
-					},
-					bankAccountNumber: form.bankAccountNumber,
-					rentDueDate: form.rentDueDate,
-					numberOfFlats: Number(form.numberOfFlats),
-					organisation: selectedOrganisationId, // <<<<<< KLUCZOWE!
-				}),
+				bankAccountNumber: form.bankAccountNumber,
+				rentDueDate: form.rentDueDate,
+				numberOfFlats: Number(form.numberOfFlats),
+				organisation: selectedOrganisationId,
 			});
-			if (!res.ok) {
-				throw new Error(`Błąd serwera: ${res.status}`);
-			}
-			setSuccess(true);
 			setLoading(false);
-			onSuccess?.();
-			setTimeout(() => {
-				setSuccess(false);
-				onClose();
-			}, 1400);
+			onSuccess();
 		} catch (err: any) {
 			setError(err.message || "Wystąpił błąd");
 			setLoading(false);
@@ -293,155 +282,140 @@ const AddEstateModal: React.FC<AddEstateModalProps> = ({
 					<br />
 					Weryfikacji osiedla możesz też dokonać później.
 				</Subtitle>
-				{success ? (
-					<>
-						<SuccessMsg>
-							Osiedle zostało dodane!
-							<br />
-							Dziękujemy!
-						</SuccessMsg>
-						<Actions>
-							<ConfirmButton type='button' onClick={onClose}>
-								Zamknij
-							</ConfirmButton>
-						</Actions>
-					</>
-				) : (
-					<form onSubmit={handleSubmit} autoComplete='off'>
-						<FieldsGrid>
-							<FieldBox>
-								<label>
-									Nazwa osiedla
-									<InputRow>
-										<IconInput>
-											<FiHash />
-										</IconInput>
-										<Input
-											name='name'
-											value={form.name}
-											onChange={handleChange}
-											placeholder='Wpisz nazwę osiedla'
-											required
-										/>
-									</InputRow>
-								</label>
-							</FieldBox>
-							<FieldBox>
-								<label>
-									Adres osiedla
-									<InputRow>
-										<IconInput>
-											<FiMapPin />
-										</IconInput>
-										<Input
-											name='street'
-											value={form.street}
-											onChange={handleChange}
-											placeholder='Wpisz adres osiedla'
-											required
-										/>
-									</InputRow>
-								</label>
-							</FieldBox>
-							<FieldBox>
-								<label>
-									Miasto
-									<InputRow>
-										<IconInput>
-											<FiHome />
-										</IconInput>
-										<Input
-											name='city'
-											value={form.city}
-											onChange={handleChange}
-											placeholder='Wpisz miasto'
-											required
-										/>
-									</InputRow>
-								</label>
-							</FieldBox>
-							<FieldBox>
-								<label>
-									Kod pocztowy
-									<InputRow>
-										<IconInput>
-											<FiMapPin />
-										</IconInput>
-										<Input
-											name='zipCode'
-											value={form.zipCode}
-											onChange={handleChange}
-											placeholder='Wpisz kod pocztowy'
-											required
-										/>
-									</InputRow>
-								</label>
-							</FieldBox>
-							<FieldBox>
-								<label>
-									Nr głównego konta bankowego osiedla
-									<InputRow>
-										<IconInput>
-											<FiCreditCard />
-										</IconInput>
-										<Input
-											name='bankAccountNumber'
-											value={form.bankAccountNumber}
-											onChange={handleChange}
-											placeholder='Wpisz nr konta'
-											required
-										/>
-									</InputRow>
-								</label>
-							</FieldBox>
-							<FieldBox>
-								<label>
-									Ilość mieszkań
-									<InputRow>
-										<IconInput>
-											<FiUsers />
-										</IconInput>
-										<Input
-											name='numberOfFlats'
-											value={form.numberOfFlats}
-											onChange={handleChange}
-											placeholder='Podaj liczbę'
-											required
-											type='number'
-											min={1}
-										/>
-									</InputRow>
-								</label>
-							</FieldBox>
-							<FieldBox>
-								<label>
-									Czynsz płatny do
-									<InputRow>
-										<IconInput>
-											<FiCalendar />
-										</IconInput>
-										<Input
-											name='rentDueDate'
-											value={form.rentDueDate}
-											onChange={handleChange}
-											placeholder='Podaj dzień'
-											required
-										/>
-									</InputRow>
-								</label>
-							</FieldBox>
-							<div />
-						</FieldsGrid>
-						<Actions>
-							<CancelButton type='button' onClick={onClose}>
-								Anuluj
-							</CancelButton>
-							<ConfirmButton type='submit' disabled={loading}>
-								{loading ? "Dodawanie..." : "Dodaj osiedle i zweryfikuj"}
-							</ConfirmButton>
-						</Actions>
-					</form>
-				)}
+				<form onSubmit={handleSubmit} autoComplete='off'>
+					<FieldsGrid>
+						<FieldBox>
+							<label>
+								Nazwa osiedla
+								<InputRow>
+									<IconInput>
+										<FiHash />
+									</IconInput>
+									<Input
+										name='name'
+										value={form.name}
+										onChange={handleChange}
+										placeholder='Wpisz nazwę osiedla'
+										required
+									/>
+								</InputRow>
+							</label>
+						</FieldBox>
+						<FieldBox>
+							<label>
+								Adres osiedla
+								<InputRow>
+									<IconInput>
+										<FiMapPin />
+									</IconInput>
+									<Input
+										name='street'
+										value={form.street}
+										onChange={handleChange}
+										placeholder='Wpisz adres osiedla'
+										required
+									/>
+								</InputRow>
+							</label>
+						</FieldBox>
+						<FieldBox>
+							<label>
+								Miasto
+								<InputRow>
+									<IconInput>
+										<FiHome />
+									</IconInput>
+									<Input
+										name='city'
+										value={form.city}
+										onChange={handleChange}
+										placeholder='Wpisz miasto'
+										required
+									/>
+								</InputRow>
+							</label>
+						</FieldBox>
+						<FieldBox>
+							<label>
+								Kod pocztowy
+								<InputRow>
+									<IconInput>
+										<FiMapPin />
+									</IconInput>
+									<Input
+										name='zipCode'
+										value={form.zipCode}
+										onChange={handleChange}
+										placeholder='Wpisz kod pocztowy'
+										required
+									/>
+								</InputRow>
+							</label>
+						</FieldBox>
+						<FieldBox>
+							<label>
+								Nr głównego konta bankowego osiedla
+								<InputRow>
+									<IconInput>
+										<FiCreditCard />
+									</IconInput>
+									<Input
+										name='bankAccountNumber'
+										value={form.bankAccountNumber}
+										onChange={handleChange}
+										placeholder='Wpisz nr konta'
+										required
+									/>
+								</InputRow>
+							</label>
+						</FieldBox>
+						<FieldBox>
+							<label>
+								Ilość mieszkań
+								<InputRow>
+									<IconInput>
+										<FiUsers />
+									</IconInput>
+									<Input
+										name='numberOfFlats'
+										value={form.numberOfFlats}
+										onChange={handleChange}
+										placeholder='Podaj liczbę'
+										required
+										type='number'
+										min={1}
+									/>
+								</InputRow>
+							</label>
+						</FieldBox>
+						<FieldBox>
+							<label>
+								Czynsz płatny do
+								<InputRow>
+									<IconInput>
+										<FiCalendar />
+									</IconInput>
+									<Input
+										name='rentDueDate'
+										value={form.rentDueDate}
+										onChange={handleChange}
+										placeholder='Podaj dzień'
+										required
+									/>
+								</InputRow>
+							</label>
+						</FieldBox>
+						<div />
+					</FieldsGrid>
+					<Actions>
+						<CancelButton type='button' onClick={onClose}>
+							Anuluj
+						</CancelButton>
+						<ConfirmButton type='submit' disabled={loading}>
+							{loading ? "Dodawanie osiedla..." : "Dodaj osiedle i zweryfikuj"}
+						</ConfirmButton>
+					</Actions>
+				</form>
 				{error && <ErrorMsg>{error}</ErrorMsg>}
 			</Modal>
 		</Overlay>
