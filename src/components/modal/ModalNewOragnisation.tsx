@@ -1,9 +1,12 @@
+// src/components/modal/ModalNewOrganisation.tsx
+"use client";
+
 import React, { useState } from "react";
 import styled from "styled-components";
 import { FiHome, FiMapPin, FiMail, FiPhone, FiHash } from "react-icons/fi";
-import { useMain, Organisation } from "@/context/EstateContext";
+import { useMain } from "@/context/EstateContext";
 
-// ===== STYLE =====
+// === STYLES ===
 const Overlay = styled.div`
 	position: fixed;
 	inset: 0;
@@ -14,39 +17,23 @@ const Overlay = styled.div`
 	z-index: 2000;
 `;
 
-const Modal = styled.div`
+const ModalBox = styled.div`
 	width: 680px;
 	max-width: 98vw;
 	border-radius: 22px;
 	background: #fafafa;
 	box-shadow: 0 0 40px rgba(0, 0, 0, 0.17);
-	padding: 38px 48px 32px 48px;
+	padding: 38px 48px 32px;
 	display: flex;
 	flex-direction: column;
 	gap: 18px;
-	position: relative;
 `;
 
 const HeaderRow = styled.div`
 	display: flex;
-	align-items: flex-start;
-	justify-content: space-between;
-`;
-
-const TitleRow = styled.div`
-	display: flex;
 	align-items: center;
 	gap: 14px;
 `;
-
-const Title = styled.div`
-	font-size: 23px;
-	font-weight: 700;
-	color: #232323;
-	display: flex;
-	align-items: center;
-`;
-
 const IconBox = styled.div`
 	background: #ffd100;
 	width: 44px;
@@ -55,14 +42,16 @@ const IconBox = styled.div`
 	align-items: center;
 	justify-content: center;
 	border-radius: 14px;
-	margin-right: 2px;
 `;
-
+const Title = styled.div`
+	font-size: 23px;
+	font-weight: 700;
+	color: #232323;
+`;
 const Subtitle = styled.div`
 	font-size: 15px;
 	color: #8c8c8c;
-	font-weight: 400;
-	margin: 10px 0 18px 0;
+	margin: 10px 0 18px;
 `;
 
 const FieldsGrid = styled.div`
@@ -71,27 +60,25 @@ const FieldsGrid = styled.div`
 	gap: 18px 32px;
 	margin-bottom: 6px;
 `;
-
 const FieldBox = styled.div`
 	display: flex;
 	flex-direction: column;
 	gap: 7px;
 `;
 
-const InputRow = styled.div`
+const InputRow = styled.div<{ invalid?: boolean }>`
 	display: flex;
 	align-items: center;
 	background: #fff;
 	border-radius: 11px;
-	border: 1px solid #e3e3e3;
-	padding: 0 12px 0 10px;
+	padding: 0 12px;
 	height: 47px;
+	border: 1px solid ${({ invalid }) => (invalid ? "#c81b1b" : "#e3e3e3")};
 	transition: border 0.15s;
 	&:focus-within {
 		border-color: #ffd100;
 	}
 `;
-
 const IconInput = styled.div`
 	color: #bdbdbd;
 	font-size: 20px;
@@ -99,20 +86,22 @@ const IconInput = styled.div`
 	display: flex;
 	align-items: center;
 `;
-
 const Input = styled.input`
 	flex: 1;
 	border: none;
 	background: none;
 	font-size: 15px;
-	font-family: inherit;
 	color: #212121;
 	outline: none;
 	&::placeholder {
 		color: #bdbdbd;
-		font-weight: 400;
-		font-size: 15px;
 	}
+`;
+const ErrorMsg = styled.div`
+	margin: 5px 0 0;
+	font-size: 14px;
+	color: #c81b1b;
+	text-align: left;
 `;
 
 const Actions = styled.div`
@@ -121,8 +110,7 @@ const Actions = styled.div`
 	gap: 20px;
 	margin-top: 30px;
 `;
-
-const CancelButton = styled.button`
+const CancelBtn = styled.button`
 	background: #ededed;
 	border: none;
 	border-radius: 10px;
@@ -131,13 +119,11 @@ const CancelButton = styled.button`
 	font-weight: 500;
 	color: #535353;
 	cursor: pointer;
-	transition: background 0.18s;
 	&:hover {
 		background: #e0e0e0;
 	}
 `;
-
-const ConfirmButton = styled.button`
+const ConfirmBtn = styled.button`
 	background: #ffd100;
 	border: none;
 	border-radius: 10px;
@@ -147,13 +133,12 @@ const ConfirmButton = styled.button`
 	color: #232323;
 	cursor: pointer;
 	box-shadow: 0 0 18px rgba(255, 209, 0, 0.13);
-	transition: background 0.18s;
 	&:hover {
 		background: #ffc800;
 	}
 `;
 
-const LoaderWrapper = styled.div`
+const LoaderWrap = styled.div`
 	width: 100%;
 	height: 320px;
 	display: flex;
@@ -163,8 +148,7 @@ const LoaderWrapper = styled.div`
 	background: #ffd100;
 	border-radius: 16px;
 `;
-
-const Loader = styled.div`
+const Spinner = styled.div`
 	margin-bottom: 24px;
 	width: 48px;
 	height: 48px;
@@ -173,255 +157,212 @@ const Loader = styled.div`
 	border-radius: 50%;
 	animation: spin 1s linear infinite;
 	@keyframes spin {
-		0% {
-			transform: rotate(0deg);
-		}
-		100% {
+		to {
 			transform: rotate(360deg);
 		}
 	}
 `;
-
 const LoaderText = styled.div`
 	font-size: 24px;
 	font-weight: 700;
 	color: #232323;
-	text-align: center;
 `;
 
-const ErrorMsg = styled.div`
-	margin: 10px 0 0 0;
-	font-size: 15px;
-	color: #c81b1b;
-	text-align: center;
-`;
+// === TYPES & WALIDACJA ===
+export type NewOrgPayload = {
+	companyName: string;
+	email: string;
+	phone: string;
+	accountStatus: "unconfirmed" | "confirmed";
+	manager: string;
+	city: string;
+	zipCode: string;
+	street: string;
+	buildingNumber: string;
+};
 
-// ====== PROPS ======
 interface ModalNewOrganisationProps {
 	open: boolean;
 	onClose: () => void;
-	createOrganisation: (
-		data: Omit<Organisation, "_id" | "estates" | "createdAt" | "updatedAt">
-	) => Promise<void>;
-	onSuccess?: () => void;
+	createOrganisation: (data: NewOrgPayload) => Promise<void>;
 }
 
-const ModalNewOrganisation: React.FC<ModalNewOrganisationProps> = ({
+type FormState = Pick<
+	NewOrgPayload,
+	| "companyName"
+	| "email"
+	| "phone"
+	| "city"
+	| "zipCode"
+	| "street"
+	| "buildingNumber"
+>;
+
+const initialForm: FormState = {
+	companyName: "",
+	email: "",
+	phone: "",
+	city: "",
+	zipCode: "",
+	street: "",
+	buildingNumber: "",
+};
+
+type Field = {
+	name: keyof FormState;
+	icon: React.ReactNode;
+	placeholder: string;
+	type?: string;
+};
+
+const fields: Field[] = [
+	{ name: "companyName", icon: <FiHash />, placeholder: "Wpisz nazwę firmy" },
+	{
+		name: "email",
+		icon: <FiMail />,
+		placeholder: "np. adres@przykład.pl",
+		type: "email",
+	},
+	{ name: "phone", icon: <FiPhone />, placeholder: "np. +48 000 000 000" },
+	{ name: "city", icon: <FiMapPin />, placeholder: "Wpisz miasto" },
+	{ name: "zipCode", icon: <FiMapPin />, placeholder: "np. 44-200" },
+	{ name: "street", icon: <FiMapPin />, placeholder: "Wpisz ulicę" },
+	{ name: "buildingNumber", icon: <FiHome />, placeholder: "Nr budynku" },
+];
+
+const validateEmail = (v: string) =>
+	/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim());
+const validateZip = (v: string) => /^\d{2}-\d{3}$/.test(v.trim());
+const validatePhone = (v: string) =>
+	/^\+48\s?\d{3}\s?\d{3}\s?\d{3}$/.test(v.trim());
+
+export default function ModalNewOrganisation({
 	open,
 	onClose,
 	createOrganisation,
-	onSuccess,
-}) => {
+}: ModalNewOrganisationProps) {
 	const { manager } = useMain();
 
-	const [form, setForm] = useState({
-		companyName: "",
-		email: "",
-		phone: "",
-		city: "",
-		zipCode: "",
-		street: "",
-		buildingNumber: "",
-	});
+	const [form, setForm] = useState<FormState>(initialForm);
+	const [errors, setErrors] = useState<
+		Partial<Record<keyof FormState, string>>
+	>({});
 	const [loading, setLoading] = useState(false);
-	const [error, setError] = useState<string | null>(null);
+
+	const reset = () => {
+		setForm(initialForm);
+		setErrors({});
+		setLoading(false);
+	};
 
 	const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-		setForm({ ...form, [e.target.name]: e.target.value });
+		const { name, value } = e.target as HTMLInputElement & {
+			name: keyof FormState;
+		};
+		setForm(f => ({ ...f, [name]: value }));
+		setErrors(err => ({ ...err, [name]: "" }));
+	};
+
+	const validate = (): boolean => {
+		const newErrors: Partial<Record<keyof FormState, string>> = {};
+
+		if (!form.companyName.trim()) newErrors.companyName = "Podaj nazwę firmy";
+		if (!form.email.trim()) newErrors.email = "Podaj adres e-mail";
+		else if (!validateEmail(form.email))
+			newErrors.email = "Niepoprawny adres e-mail";
+		if (!form.phone.trim()) newErrors.phone = "Podaj telefon";
+		else if (!validatePhone(form.phone))
+			newErrors.phone = "Format: +48 123 456 789";
+		if (!form.city.trim()) newErrors.city = "Podaj miasto";
+		if (!form.zipCode.trim()) newErrors.zipCode = "Podaj kod pocztowy";
+		else if (!validateZip(form.zipCode)) newErrors.zipCode = "Format: 44-200";
+		if (!form.street.trim()) newErrors.street = "Podaj ulicę";
+		if (!form.buildingNumber.trim())
+			newErrors.buildingNumber = "Podaj numer budynku";
+
+		setErrors(newErrors);
+		return Object.keys(newErrors).length === 0;
 	};
 
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
-		if (!manager?._id) {
-			setError("Nie można dodać organizacji – brak zalogowanego managera.");
-			return;
-		}
+		if (!validate()) return;
 		setLoading(true);
-		setError(null);
 		try {
 			await createOrganisation({
 				companyName: form.companyName,
 				email: form.email,
 				phone: form.phone,
-				address: {
-					city: form.city,
-					zipCode: form.zipCode,
-					street: form.street,
-					buildingNumber: form.buildingNumber,
-				},
 				accountStatus: "unconfirmed",
-				manager: manager._id,
+				manager: manager!._id,
+				city: form.city,
+				zipCode: form.zipCode,
+				street: form.street,
+				buildingNumber: form.buildingNumber,
 			});
+			reset();
+			onClose(); // zamykamy modal po sukcesie
+		} catch (err) {
 			setLoading(false);
-			onSuccess?.();
-			onClose(); // modal zamyka się po success
-		} catch (err: any) {
-			setError(err.message || "Wystąpił błąd");
-			setLoading(false);
+			// ewentualnie możesz pokazać error toast z poziomu strony!
 		}
 	};
+
+	// Gdy zamykamy modal, czyść formularz
+	React.useEffect(() => {
+		if (!open) reset();
+	}, [open]);
 
 	if (!open) return null;
 
 	return (
 		<Overlay>
-			<Modal>
+			<ModalBox>
 				<HeaderRow>
-					<TitleRow>
-						<IconBox>
-							<FiHome size={27} />
-						</IconBox>
-						<Title>Dodaj nową organizację</Title>
-					</TitleRow>
+					<IconBox>
+						<FiHome size={27} />
+					</IconBox>
+					<Title>Dodaj nową organizację</Title>
 				</HeaderRow>
+
 				{loading ? (
-					<LoaderWrapper>
-						<Loader />
+					<LoaderWrap>
+						<Spinner />
 						<LoaderText>Dodawanie organizacji...</LoaderText>
-					</LoaderWrapper>
+					</LoaderWrap>
 				) : (
 					<>
-						<Subtitle>
-							Wprowadź dane firmy, aby dodać ją do swojego panelu zarządcy.
-						</Subtitle>
+						<Subtitle>Wprowadź dane firmy, aby dodać ją do panelu.</Subtitle>
 						<form onSubmit={handleSubmit} autoComplete='off'>
 							<FieldsGrid>
-								<FieldBox>
-									<label>
-										Nazwa firmy
-										<InputRow>
-											<IconInput>
-												<FiHash />
-											</IconInput>
+								{fields.map(f => (
+									<FieldBox key={f.name}>
+										<InputRow invalid={!!errors[f.name]}>
+											<IconInput>{f.icon}</IconInput>
 											<Input
-												name='companyName'
-												value={form.companyName}
+												name={f.name}
+												type={f.type ?? "text"}
+												placeholder={f.placeholder}
+												value={form[f.name]}
 												onChange={handleChange}
-												placeholder='Wpisz nazwę firmy'
+												autoComplete='off'
 												required
 											/>
 										</InputRow>
-									</label>
-								</FieldBox>
-								<FieldBox>
-									<label>
-										E-mail firmy
-										<InputRow>
-											<IconInput>
-												<FiMail />
-											</IconInput>
-											<Input
-												name='email'
-												type='email'
-												value={form.email}
-												onChange={handleChange}
-												placeholder='Wpisz e-mail firmy'
-												required
-											/>
-										</InputRow>
-									</label>
-								</FieldBox>
-								<FieldBox>
-									<label>
-										Numer telefonu
-										<InputRow>
-											<IconInput>
-												<FiPhone />
-											</IconInput>
-											<Input
-												name='phone'
-												value={form.phone}
-												onChange={handleChange}
-												placeholder='Podaj numer telefonu'
-												required
-											/>
-										</InputRow>
-									</label>
-								</FieldBox>
-								<FieldBox>
-									<label>
-										Miasto
-										<InputRow>
-											<IconInput>
-												<FiMapPin />
-											</IconInput>
-											<Input
-												name='city'
-												value={form.city}
-												onChange={handleChange}
-												placeholder='Miasto'
-												required
-											/>
-										</InputRow>
-									</label>
-								</FieldBox>
-								<FieldBox>
-									<label>
-										Kod pocztowy
-										<InputRow>
-											<IconInput>
-												<FiMapPin />
-											</IconInput>
-											<Input
-												name='zipCode'
-												value={form.zipCode}
-												onChange={handleChange}
-												placeholder='Kod pocztowy'
-												required
-											/>
-										</InputRow>
-									</label>
-								</FieldBox>
-								<FieldBox>
-									<label>
-										Ulica
-										<InputRow>
-											<IconInput>
-												<FiMapPin />
-											</IconInput>
-											<Input
-												name='street'
-												value={form.street}
-												onChange={handleChange}
-												placeholder='Ulica'
-												required
-											/>
-										</InputRow>
-									</label>
-								</FieldBox>
-								<FieldBox>
-									<label>
-										Nr budynku
-										<InputRow>
-											<IconInput>
-												<FiHome />
-											</IconInput>
-											<Input
-												name='buildingNumber'
-												value={form.buildingNumber}
-												onChange={handleChange}
-												placeholder='Nr budynku'
-												required
-											/>
-										</InputRow>
-									</label>
-								</FieldBox>
+										{errors[f.name] && <ErrorMsg>{errors[f.name]}</ErrorMsg>}
+									</FieldBox>
+								))}
 							</FieldsGrid>
 							<Actions>
-								<CancelButton type='button' onClick={onClose}>
+								<CancelBtn type='button' onClick={onClose}>
 									Anuluj
-								</CancelButton>
-								<ConfirmButton type='submit' disabled={loading}>
-									{loading ? "Dodawanie..." : "Dodaj organizację"}
-								</ConfirmButton>
+								</CancelBtn>
+								<ConfirmBtn type='submit'>Dodaj organizację</ConfirmBtn>
 							</Actions>
 						</form>
-						{error && <ErrorMsg>{error}</ErrorMsg>}
 					</>
 				)}
-			</Modal>
+			</ModalBox>
 		</Overlay>
 	);
-};
-
-export default ModalNewOrganisation;
+}

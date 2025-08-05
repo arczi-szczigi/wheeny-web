@@ -1,13 +1,14 @@
+// app/register/page.tsx
 "use client";
 import styled, { keyframes } from "styled-components";
 import { useState } from "react";
 import axios from "axios";
 import { useRouter } from "next/navigation";
 
-// --- SPINNER LOADER ---
+// === SPINNER LOADER ===
 const spin = keyframes`
-  0% { transform: rotate(0deg);}
-  100% { transform: rotate(360deg);}
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 `;
 const LoaderOverlay = styled.div`
 	position: fixed;
@@ -16,8 +17,8 @@ const LoaderOverlay = styled.div`
 	backdrop-filter: blur(2px);
 	z-index: 4000;
 	display: flex;
-	justify-content: center;
 	align-items: center;
+	justify-content: center;
 	flex-direction: column;
 	gap: 16px;
 `;
@@ -38,24 +39,24 @@ const LoaderText = styled.div`
 	text-shadow: 0 2px 18px #000a;
 `;
 
-// --- SUCCESS MODAL ---
+// === SUCCESS MODAL ===
 const SuccessOverlay = styled(LoaderOverlay)`
 	background: rgba(30, 30, 30, 0.6);
 `;
 const SuccessBox = styled.div`
 	background: #fff;
 	border-radius: 18px;
-	padding: 38px 46px 30px 46px;
+	padding: 38px 46px 30px;
 	box-shadow: 0 0 40px #0003;
 	display: flex;
 	flex-direction: column;
 	align-items: center;
 	gap: 14px;
 	min-width: 290px;
-	text-align: center; /* <-- dodaj to */
+	text-align: center;
 `;
 
-// --- RESZTA STYLI ---
+// === LAYOUT & FORM ===
 const Wrapper = styled.main`
 	min-height: 100vh;
 	display: grid;
@@ -69,21 +70,27 @@ const Left = styled.div`
 	color: white;
 	display: flex;
 	flex-direction: column;
-	justify-content: center;
+	justify-content: center; /* vertical centering */
+	align-items: flex-start; /* left-align items */
 	padding: 4rem;
+
+	img {
+		width: 325px; /* half previous size */
+		margin: 0 0 2rem 0; /* flush top & left */
+		display: block;
+	}
 	h1 {
 		font-size: 2.2rem;
 		font-weight: 700;
-		margin-bottom: 1.5rem;
+		margin: 0 0 1rem 0;
 		line-height: 1.3;
+		text-align: left;
 	}
 	p {
 		font-size: 1rem;
 		color: #d1d1d1;
-	}
-	img {
-		margin-bottom: 2rem;
-		width: 130px;
+		margin: 0;
+		text-align: left;
 	}
 `;
 const Right = styled.div`
@@ -110,11 +117,11 @@ const Form = styled.form`
 `;
 const GridTwo = styled.div`
 	display: grid;
+	gap: 1rem;
 	grid-template-columns: 1fr;
 	@media (min-width: 768px) {
 		grid-template-columns: 1fr 1fr;
 	}
-	gap: 1rem;
 `;
 const InputGroup = styled.div`
 	display: flex;
@@ -132,17 +139,27 @@ const Label = styled.label`
 		width: 18px;
 		height: 18px;
 	}
+	span.required {
+		color: #d20000;
+		margin-left: 0.2rem;
+	}
 `;
-const Input = styled.input`
+const Input = styled.input<{ invalid?: boolean }>`
 	padding: 0.7rem 1rem;
-	border: 1px solid #ccc;
 	border-radius: 8px;
 	font-size: 0.95rem;
+	border: 1px solid ${({ invalid }) => (invalid ? "#d20000" : "#ccc")};
 	background: #fff;
 	&:focus {
 		outline: 2px solid #ffd600;
 		border-color: transparent;
 	}
+`;
+const FieldError = styled.div`
+	color: #d20000;
+	font-size: 0.85rem;
+	margin-top: -4px;
+	margin-bottom: 4px;
 `;
 const CheckboxGroup = styled.div`
 	font-size: 0.85rem;
@@ -161,10 +178,33 @@ const CheckboxGroup = styled.div`
 			color: #0070f3;
 			text-decoration: underline;
 		}
+		span.required {
+			color: #d20000;
+			margin-left: 0.2rem;
+		}
+	}
+`;
+const ButtonGroup = styled.div`
+	display: flex;
+	gap: 1rem;
+	margin-top: 1rem;
+`;
+const BackButton = styled.button`
+	flex: 1;
+	background: #d6d6d6;
+	color: #333;
+	font-weight: 400;
+	padding: 0.9rem;
+	font-size: 0.95rem;
+	border: none;
+	border-radius: 8px;
+	cursor: pointer;
+	&:hover {
+		background: #bfbfbf;
 	}
 `;
 const SubmitButton = styled.button`
-	width: 100%;
+	flex: 1;
 	background: #ffd600;
 	color: black;
 	font-weight: 500;
@@ -197,42 +237,57 @@ const ErrorBox = styled.div`
 	margin-bottom: 14px;
 `;
 
-// ----- LABELED INPUT -----
+// === VALIDATION HELPERS ===
+const validateEmail = (v: string) =>
+	/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim());
+const validateZip = (v: string) => /^\d{2}-\d{3}$/.test(v.trim());
+const validatePhone = (v: string) =>
+	/^\+?\d{2}[\s-]?\d{3}[\s-]?\d{3}[\s-]?\d{3,4}$/.test(v.trim());
+
+// === LABELED INPUT ===
 function LabeledInput({
 	icon,
 	label,
 	placeholder,
 	name,
+	type = "text",
 	value,
 	onChange,
+	error,
 }: {
 	icon: string;
 	label: string;
 	placeholder: string;
 	name: string;
+	type?: string;
 	value: string;
 	onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+	error?: string;
 }) {
 	return (
 		<InputGroup>
 			<Label>
 				<img src={`/icons/${icon}`} alt='' />
 				{label}
+				<span className='required'>*</span>
 			</Label>
 			<Input
-				type={name === "password" ? "password" : "text"}
+				type={type}
 				placeholder={placeholder}
 				name={name}
 				value={value}
 				onChange={onChange}
+				invalid={!!error}
 			/>
+			{error && <FieldError>{error}</FieldError>}
 		</InputGroup>
 	);
 }
 
+// === REGISTER PAGE ===
 export default function RegisterPage() {
 	const router = useRouter();
-	const [formData, setFormData] = useState({
+	const [fd, setFd] = useState({
 		companyName: "",
 		nip: "",
 		firstName: "",
@@ -247,44 +302,71 @@ export default function RegisterPage() {
 	});
 	const [agreed, setAgreed] = useState(false);
 	const [accepted, setAccepted] = useState(false);
-
+	const [errors, setErrors] = useState<Record<string, string>>({});
 	const [loading, setLoading] = useState(false);
 	const [success, setSuccess] = useState(false);
-	const [error, setError] = useState<string | null>(null);
 
 	const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-		const { name, value } = e.target;
-		setFormData(prev => ({ ...prev, [name]: value }));
+		const { name, value, type, checked } = e.target;
+		if (type === "checkbox") {
+			name === "agreed" ? setAgreed(checked) : setAccepted(checked);
+			setErrors(p => ({ ...p, [name]: "" }));
+		} else {
+			setFd(p => ({ ...p, [name]: value }));
+			setErrors(p => ({ ...p, [name]: "" }));
+		}
 	};
 
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
-		if (!agreed || !accepted) {
-			setError("Musisz zaznaczyć wszystkie wymagane zgody.");
-			return;
-		}
-		setLoading(true);
-		setError(null);
+		const ne: Record<string, string> = {};
+		(
+			[
+				"companyName",
+				"nip",
+				"firstName",
+				"lastName",
+				"city",
+				"zipCode",
+				"street",
+				"buildingNumber",
+				"phone",
+				"email",
+				"password",
+			] as const
+		).forEach(f => {
+			if (!fd[f].trim()) ne[f] = "To pole jest wymagane.";
+		});
+		if (fd.email && !validateEmail(fd.email))
+			ne.email = "Adres musi być w formacie adres@przykład.pl";
+		if (fd.zipCode && !validateZip(fd.zipCode))
+			ne.zipCode = "Poprawny kod: 44-200";
+		if (fd.phone && !validatePhone(fd.phone))
+			ne.phone = "Poprawny tel: +48 536 560 764";
+		if (fd.password && fd.password.length < 6)
+			ne.password = "Hasło musi mieć min. 6 znaków.";
+		if (!agreed) ne.agreed = "Musisz potwierdzić prawdziwość danych.";
+		if (!accepted) ne.accepted = "Musisz zaakceptować regulamin i politykę.";
 
+		setErrors(ne);
+		if (Object.keys(ne).length) return;
+
+		setLoading(true);
 		try {
 			const res = await axios.post(
 				`${process.env.NEXT_PUBLIC_API_URL}/managers/register`,
-				formData
+				fd
 			);
-
-			if (res.status === 201 || res.status === 200) {
+			if (res.status < 300) {
 				setSuccess(true);
-				setTimeout(() => {
-					router.push("/login");
-				}, 1400);
+				setTimeout(() => router.push("/login"), 1400);
 			} else {
-				setError("Błąd rejestracji. Spróbuj ponownie.");
+				setErrors({ form: "Błąd rejestracji. Spróbuj ponownie." });
 			}
 		} catch (err: any) {
-			setError(
-				err?.response?.data?.message ||
-					"Nie udało się zarejestrować. Spróbuj ponownie."
-			);
+			setErrors({
+				form: err?.response?.data?.message || "Nie udało się zarejestrować.",
+			});
 		} finally {
 			setLoading(false);
 		}
@@ -295,166 +377,205 @@ export default function RegisterPage() {
 			<Left>
 				<img src='/icons/wheenyLogo.png' alt='wheeny logo' />
 				<h1>
-					Już kilka klików dzieli Cię <br /> od świata nowoczesnej komunikacji.
+					Już kilka klików dzieli Cię
+					<br />
+					od świata nowoczesnej komunikacji.
 				</h1>
 				<p>Dokończ rejestrację już teraz.</p>
 			</Left>
-
 			<Right>
 				<h2>Wypełnij formularz rejestracyjny</h2>
 				<p>
 					Czy jesteś właścicielem lub osobą zarządzającą osiedlami?
 					<br />
-					Jeśli tak, to możesz utworzyć bezpłatne konto zarządcy.
+					Jeśli tak, utwórz konto zarządcy.
 				</p>
-
 				<Form onSubmit={handleSubmit}>
-					{error && <ErrorBox>{error}</ErrorBox>}
+					{errors.form && <ErrorBox>{errors.form}</ErrorBox>}
 					<GridTwo>
 						<LabeledInput
 							icon='buildingIcon.png'
 							label='Nazwa firmy'
-							name='companyName'
 							placeholder='Wpisz nazwę firmy'
-							value={formData.companyName}
+							name='companyName'
+							value={fd.companyName}
 							onChange={handleChange}
+							error={errors.companyName}
 						/>
 						<LabeledInput
 							icon='buildingIcon.png'
 							label='NIP'
-							name='nip'
 							placeholder='Wpisz NIP'
-							value={formData.nip}
+							name='nip'
+							value={fd.nip}
 							onChange={handleChange}
+							error={errors.nip}
 						/>
 					</GridTwo>
 					<GridTwo>
 						<LabeledInput
 							icon='peopleIcon.png'
 							label='Imię'
-							name='firstName'
 							placeholder='Wpisz imię'
-							value={formData.firstName}
+							name='firstName'
+							value={fd.firstName}
 							onChange={handleChange}
+							error={errors.firstName}
 						/>
 						<LabeledInput
 							icon='peopleIcon.png'
 							label='Nazwisko'
-							name='lastName'
 							placeholder='Wpisz nazwisko'
-							value={formData.lastName}
+							name='lastName'
+							value={fd.lastName}
 							onChange={handleChange}
+							error={errors.lastName}
 						/>
 					</GridTwo>
 					<GridTwo>
 						<LabeledInput
 							icon='homeIcon.png'
 							label='Miasto'
-							name='city'
 							placeholder='Wpisz miasto'
-							value={formData.city}
+							name='city'
+							value={fd.city}
 							onChange={handleChange}
+							error={errors.city}
 						/>
 						<LabeledInput
 							icon='homeIcon.png'
 							label='Kod pocztowy'
+							placeholder='np. 00-000'
 							name='zipCode'
-							placeholder='Wpisz kod pocztowy'
-							value={formData.zipCode}
+							value={fd.zipCode}
 							onChange={handleChange}
+							error={errors.zipCode}
 						/>
 					</GridTwo>
 					<GridTwo>
 						<LabeledInput
 							icon='homeIcon.png'
 							label='Ulica'
-							name='street'
 							placeholder='Wpisz ulicę'
-							value={formData.street}
+							name='street'
+							value={fd.street}
 							onChange={handleChange}
+							error={errors.street}
 						/>
 						<LabeledInput
 							icon='homeIcon.png'
 							label='Numer budynku'
-							name='buildingNumber'
 							placeholder='Nr budynku'
-							value={formData.buildingNumber}
+							name='buildingNumber'
+							value={fd.buildingNumber}
 							onChange={handleChange}
+							error={errors.buildingNumber}
 						/>
 					</GridTwo>
 					<GridTwo>
 						<LabeledInput
 							icon='peopleIcon.png'
 							label='Telefon'
+							placeholder='np. +48 XXX XXX XXX'
 							name='phone'
-							placeholder='Wpisz numer telefonu'
-							value={formData.phone}
+							value={fd.phone}
 							onChange={handleChange}
+							error={errors.phone}
 						/>
 						<LabeledInput
 							icon='peopleIcon.png'
 							label='Email'
+							placeholder='np. adres@przyklad.pl'
 							name='email'
-							placeholder='Wpisz adres email'
-							value={formData.email}
+							value={fd.email}
 							onChange={handleChange}
+							error={errors.email}
 						/>
 					</GridTwo>
 					<LabeledInput
 						icon='peopleIcon.png'
 						label='Hasło'
+						placeholder='Wpisz hasło min 6 znaków'
 						name='password'
-						placeholder='Wpisz hasło'
-						value={formData.password}
+						type='password'
+						value={fd.password}
 						onChange={handleChange}
+						error={errors.password}
 					/>
 					<CheckboxGroup>
 						<label>
 							<input
 								type='checkbox'
+								name='agreed'
 								checked={agreed}
-								onChange={() => setAgreed(!agreed)}
+								onChange={handleChange}
 							/>
 							<span>
-								Oświadczam, że wszystkie dane przesłane podczas rejestracji są
-								prawdziwe i posiadam prawo do ich użycia.
+								Oświadczam, że wszystkie dane są prawdziwe.
+								<span className='required'>*</span>
 							</span>
 						</label>
+						{errors.agreed && <FieldError>{errors.agreed}</FieldError>}
 						<label>
 							<input
 								type='checkbox'
+								name='accepted'
 								checked={accepted}
-								onChange={() => setAccepted(!accepted)}
+								onChange={handleChange}
 							/>
 							<span>
-								Potwierdzam zapoznanie się z <a href='#'>regulaminem</a> oraz{" "}
-								<a href='#'>polityką prywatności</a>.
+								Akceptuję{" "}
+								<a
+									href='https://www.wheeny.com/regulamin'
+									target='_blank'
+									rel='noopener'>
+									regulamin
+								</a>{" "}
+								oraz{" "}
+								<a
+									href='https://www.wheeny.com/polityka-prywatnosci'
+									target='_blank'
+									rel='noopener'>
+									politykę prywatności
+								</a>
+								.<span className='required'>*</span>
 							</span>
 						</label>
+						{errors.accepted && <FieldError>{errors.accepted}</FieldError>}
 					</CheckboxGroup>
-					<SubmitButton disabled={loading}>Zarejestruj konto</SubmitButton>
+					<ButtonGroup>
+						<BackButton type='button' onClick={() => router.back()}>
+							Wstecz
+						</BackButton>
+						<SubmitButton type='submit' disabled={loading}>
+							Zarejestruj konto
+						</SubmitButton>
+					</ButtonGroup>
 					<HelpText>
-						Problemy z formularzem? <a href='#'>Poproś o pomoc</a>
+						Problemy z formularzem?{" "}
+						<a
+							href='https://www.wheeny.com/pomoc'
+							target='_blank'
+							rel='noopener'>
+							Poproś o pomoc
+						</a>
 					</HelpText>
 				</Form>
 			</Right>
-
-			{/* LOADER - w trakcie rejestracji */}
 			{loading && (
 				<LoaderOverlay>
 					<LoaderSpinner />
 					<LoaderText>Rejestracja konta w toku...</LoaderText>
 				</LoaderOverlay>
 			)}
-
-			{/* SUKCES */}
 			{success && (
 				<SuccessOverlay>
 					<SuccessBox>
 						<div
 							style={{ color: "#232323", fontWeight: 600, fontSize: "1.1rem" }}>
-							Konto zarejestrowane! <br />
-							Zaraz zostaniesz przekierowany do logowania.
+							Konto zarejestrowane!
+							<br />
+							Za chwilę przeniesiemy Cię do logowania.
 						</div>
 					</SuccessBox>
 				</SuccessOverlay>

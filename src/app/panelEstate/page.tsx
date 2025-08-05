@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Sidebar } from "@/components/Sidebar";
 import styled from "styled-components";
 import SearchBarPanelEstate from "@/components/panelEstate/SearchBarPanelEstate";
@@ -95,7 +96,21 @@ const OverlayText = styled.div`
 	text-align: center;
 `;
 
+// === FILTR INFO BAR ===
+const InfoBar = styled.div`
+	margin: 16px 0 0 8px;
+	font-size: 13px;
+	color: #666;
+	display: flex;
+	gap: 18px;
+`;
+
+type FilterStatus = "all" | "verified" | "unverified" | "verifying";
+type SortValue = "az" | "za";
+
 export default function PanelEstatePage() {
+	const router = useRouter();
+
 	const {
 		organisations,
 		selectedOrganisationId,
@@ -107,6 +122,11 @@ export default function PanelEstatePage() {
 
 	const [modalOpen, setModalOpen] = useState(false);
 
+	// --- SEARCH / FILTER / SORT STATE ---
+	const [searchValue, setSearchValue] = useState("");
+	const [filterStatus, setFilterStatus] = useState<FilterStatus>("all");
+	const [sortAZ, setSortAZ] = useState<SortValue>("az");
+
 	// Wybrana organizacja i jej osiedla
 	const selectedOrganisation = organisations.find(
 		org => org._id === selectedOrganisationId
@@ -115,6 +135,45 @@ export default function PanelEstatePage() {
 
 	// Po sukcesie dodania zamykamy modal. Context automatycznie wywoła fetch.
 	const handleEstateSuccess = () => setModalOpen(false);
+
+	// Handler kliknięcia na "Wybierz osiedle"
+	const handleSelectEstate = (estateId: string) => {
+		setSelectedEstateId(estateId);
+		router.push("/start");
+	};
+
+	// --- FILTER/SORT/SEARCH LOGIC ---
+	const filteredEstates = estates
+		.filter(est => {
+			const s = searchValue.trim().toLowerCase();
+			if (!s) return true;
+			const fields = [
+				est.name,
+				est.address?.city,
+				est.address?.street,
+				est.address?.zipCode,
+				est.address?.buildingNumber,
+			]
+				.filter(Boolean)
+				.map(val => String(val).toLowerCase());
+
+			return fields.some(field => field.includes(s));
+		})
+		.filter(est => {
+			if (filterStatus === "all") return true;
+			return est.status === filterStatus;
+		})
+		.sort((a, b) => {
+			const cmp = a.name.localeCompare(b.name, "pl");
+			return sortAZ === "az" ? cmp : -cmp;
+		});
+
+	// --- HANDLERS ---
+	const handleSearch = (val: string) => setSearchValue(val);
+
+	const handleFilterChange = (val: FilterStatus) => setFilterStatus(val);
+
+	const handleSortChange = (val: SortValue) => setSortAZ(val);
 
 	return (
 		<PageWrapper>
@@ -141,7 +200,38 @@ export default function PanelEstatePage() {
 							<HelloTop />
 						</div>
 						<TopPanelChooseEstate />
-						<SearchBarPanelEstate onAddClick={() => setModalOpen(true)} />
+						<SearchBarPanelEstate
+							onAddClick={() => setModalOpen(true)}
+							onSearch={handleSearch}
+							onFilterChange={handleFilterChange}
+							onSortChange={handleSortChange}
+							filterValue={filterStatus}
+							sortValue={sortAZ}
+							placeholder='Wyszukaj osiedle po nazwie, mieście lub ulicy'
+						/>
+						<InfoBar>
+							<span>
+								Filtr:{" "}
+								<b>
+									{
+										{
+											all: "Wszystkie",
+											verified: "Zweryfikowane",
+											unverified: "Niezweryfikowane",
+											verifying: "W trakcie weryfikacji",
+										}[filterStatus]
+									}
+								</b>
+							</span>
+							<span>
+								Sort: <b>{sortAZ === "az" ? "A-Z" : "Z-A"}</b>
+							</span>
+							{searchValue && (
+								<span>
+									Szukasz: <b>{searchValue}</b>
+								</span>
+							)}
+						</InfoBar>
 					</StickyHeader>
 
 					<AddEstateModal
@@ -154,13 +244,12 @@ export default function PanelEstatePage() {
 							{error}
 						</div>
 					)}
-					{estates.length === 0 && (
+					{filteredEstates.length === 0 && (
 						<div style={{ color: "#aaa", marginTop: 32, textAlign: "center" }}>
-							Brak osiedli przypisanych do tej firmy.
+							Brak osiedli spełniających kryteria.
 						</div>
 					)}
-					{/* MAPUJESZ KARTY BEZPOŚREDNIO */}
-					{estates.map(estate => (
+					{filteredEstates.map(estate => (
 						<CardEstate
 							key={estate._id}
 							estate={{
@@ -174,8 +263,9 @@ export default function PanelEstatePage() {
 								newMessages: 0,
 								newTickets: 0,
 								inProgress: 0,
+								status: estate.status ?? "unverified",
 							}}
-							onSelect={() => setSelectedEstateId(estate._id)}
+							onSelect={() => handleSelectEstate(estate._id)}
 							isSelected={selectedEstateId === estate._id}
 						/>
 					))}

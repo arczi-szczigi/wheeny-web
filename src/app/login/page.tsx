@@ -1,12 +1,14 @@
+// app/login/page.tsx
 "use client";
 import styled, { keyframes } from "styled-components";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import axios from "axios";
 
-// === LOADER STYLE (taki jak przy rejestracji) ===
+// === LOADER STYLE ===
 const spin = keyframes`
-  0% { transform: rotate(0deg);}
-  100% { transform: rotate(360deg);}
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 `;
 const LoaderOverlay = styled.div`
 	position: fixed;
@@ -63,9 +65,9 @@ const Left = styled.div`
 		color: #d1d1d1;
 	}
 	img {
-		width: 290px; // około 3x większe niż 130px
+		width: 290px;
 		margin-bottom: 3rem;
-		margin-top: -220px; // przesunięcie do góry
+		margin-top: -220px;
 		display: block;
 	}
 `;
@@ -91,9 +93,9 @@ const Form = styled.form`
 	flex-direction: column;
 	gap: 1.3rem;
 `;
-const Input = styled.input`
+const Input = styled.input<{ invalid?: boolean }>`
 	padding: 0.7rem 1rem;
-	border: 1px solid #ccc;
+	border: 1px solid ${({ invalid }) => (invalid ? "#d20000" : "#ccc")};
 	border-radius: 8px;
 	font-size: 0.95rem;
 	background: #fff;
@@ -114,6 +116,10 @@ const SubmitButton = styled.button`
 	cursor: pointer;
 	&:hover {
 		background: #e6c200;
+	}
+	&:disabled {
+		opacity: 0.6;
+		cursor: default;
 	}
 `;
 const SecondaryButton = styled.button`
@@ -155,43 +161,61 @@ const ErrorBox = styled.div`
 	margin-bottom: 10px;
 `;
 
-// ================= KOMPONENT ==================
-
 export default function LoginPage() {
+	const router = useRouter();
 	const [email, setEmail] = useState("");
 	const [password, setPassword] = useState("");
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
+	const [emailInvalid, setEmailInvalid] = useState(false);
+
+	// Jeśli token jest w localStorage, przekieruj od razu
+	useEffect(() => {
+		const token = localStorage.getItem("token");
+		if (token) {
+			router.push("/panelManager");
+		}
+	}, [router]);
+
+	const validateEmail = (value: string) => {
+		const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+		return re.test(value.trim());
+	};
 
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
-		setLoading(true);
 		setError(null);
 
+		// front-endowa walidacja
+		if (!validateEmail(email)) {
+			setEmailInvalid(true);
+			setError("Niepoprawny format adresu email.");
+			return;
+		}
+		if (password.length < 6) {
+			setError("Hasło musi mieć co najmniej 6 znaków.");
+			return;
+		}
+
+		setLoading(true);
 		try {
 			const response = await axios.post(
 				`${process.env.NEXT_PUBLIC_API_URL}/managers/login`,
-				{ email, password }
+				{ email: email.trim().toLowerCase(), password }
 			);
-
-			// Ustaw token i managerId do localStorage
 			localStorage.setItem("token", response.data.accessToken);
 			localStorage.setItem("managerId", response.data.managerId);
-
-			// Pełny reload, żeby contexty pobrały nowe dane
 			window.location.href = "/panelManager";
-		} catch (error: any) {
-			setError(
-				error?.response?.data?.message ||
-					"Niepoprawny email lub hasło. Spróbuj ponownie."
-			);
+		} catch (err: any) {
+			// Zmieniona wiadomość błędu:
+			setError("Złe dane logowania. Sprawdź adres e-mail i hasło.");
 		} finally {
 			setLoading(false);
 		}
 	};
 
 	const goToRegister = () => {
-		window.location.href = "/register";
+		router.push("/register");
 	};
 
 	return (
@@ -206,18 +230,26 @@ export default function LoginPage() {
 
 			<Right>
 				<h2>Zaloguj się do panelu zarządcy</h2>
-				<p>Masz już konto w systemie wheeny? Zaloguj się już teraz.</p>
+				<p>Masz już konto w systemie Wheeny? Zaloguj się już teraz.</p>
 
 				<Form onSubmit={handleSubmit}>
 					{error && <ErrorBox>{error}</ErrorBox>}
+
 					<Input
 						type='email'
 						placeholder='Adres email'
 						value={email}
 						autoComplete='username'
-						onChange={e => setEmail(e.target.value)}
+						onChange={e => {
+							setEmail(e.target.value);
+							if (emailInvalid) {
+								setEmailInvalid(!validateEmail(e.target.value));
+							}
+						}}
+						invalid={emailInvalid}
 						disabled={loading}
 					/>
+
 					<Input
 						type='password'
 						placeholder='Wpisz hasło'
@@ -226,7 +258,11 @@ export default function LoginPage() {
 						onChange={e => setPassword(e.target.value)}
 						disabled={loading}
 					/>
-					<ForgotPassword href='#'>Nie pamiętasz hasła?</ForgotPassword>
+
+					<ForgotPassword href='/forgot-password'>
+						Nie pamiętasz hasła?
+					</ForgotPassword>
+
 					<SubmitButton type='submit' disabled={loading}>
 						{loading ? "Logowanie..." : "Zaloguj się"}
 					</SubmitButton>
@@ -240,11 +276,13 @@ export default function LoginPage() {
 				</SecondaryButton>
 
 				<HelpText>
-					Problemy z logowaniem? <a href='#'>Poproś o pomoc</a>
+					Problemy z logowaniem?{" "}
+					<a href='https://www.wheeny.com/pomoc' target='_blank' rel='noopener'>
+						Poproś o pomoc
+					</a>
 				</HelpText>
 			</Right>
 
-			{/* LOADER - w trakcie logowania */}
 			{loading && (
 				<LoaderOverlay>
 					<LoaderSpinner />

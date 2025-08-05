@@ -1,29 +1,44 @@
-// app/socialGroup/page.tsx
+// app/settingsPanel/page.tsx
 "use client";
 
 import React from "react";
 import styled from "styled-components";
+import { Sidebar } from "../../components/Sidebar";
+import { HelloTop } from "../../components/top/HelloTop";
+import { SettingsPanel } from "../../components/settingsPanel/SettingsPanel";
 
-const PageWrapper = styled.div`
+// Layout grid z sidebar i sekcją treści
+const PageContainer = styled.div`
+	display: grid;
+	grid-template-columns: 260px 1fr;
+	height: 100vh;
 	width: 100%;
-	min-height: 100vh;
-	background: #ffd100;
+`;
+
+// Wrapper dla głównej zawartości (HelloTop + content)
+const ContentWrapper = styled.div`
 	display: flex;
-	align-items: center;
-	justify-content: center;
+	flex-direction: column;
+	background: #f5f5f5;
+
+	/* tu dodajemy padding, żeby content nie przyklejał się do góry i od sidebaru */
+	padding: 42px 40px 0 64px;
+
+	/* przerwa między HelloTop i Twoim panelem */
+	gap: 32px;
+
+	/* przewijanie w pionie, jeśli jest za dużo treści */
+	overflow-y: auto;
 `;
 
-const Title = styled.h1`
-	font-size: 36px;
-	font-family: Roboto, sans-serif;
-	font-weight: 500;
-	color: #202020;
-`;
-
-export default function SocialGroupPage() {
+export default function SettingsPanelPage() {
 	return (
-		<PageWrapper>
-			<Title>Panel w budowie</Title>
-		</PageWrapper>
+		<PageContainer>
+			<Sidebar />
+			<ContentWrapper>
+				<HelloTop />
+				<SettingsPanel />
+			</ContentWrapper>
+		</PageContainer>
 	);
 }

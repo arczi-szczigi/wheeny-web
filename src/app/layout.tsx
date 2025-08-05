@@ -1,10 +1,12 @@
+// app/layout.tsx
 import type { Metadata } from "next";
 import React from "react";
-import StyledComponentsRegistry from "./StyledComponentsRegistry"; // lub './lib/StyledComponentsRegistry' jeśli trzymasz w lib
+import StyledComponentsRegistry from "./StyledComponentsRegistry"; // lub './lib/StyledComponentsRegistry'
 import ClientWrapper from "./ClientWrapper";
 import { MainProvider } from "@/context/EstateContext";
 import { AnnouncementProvider } from "@/context/AnnouncementContext";
 import { DocForResidentsProvider } from "@/context/DocForResidentsContext";
+import { ToastProvider } from "@/components/toast/ToastContext";
 
 export const metadata: Metadata = {
 	title: "Manager Wheeny Panel",
@@ -23,7 +25,10 @@ export default function RootLayout({
 					<ClientWrapper>
 						<MainProvider>
 							<AnnouncementProvider>
-								<DocForResidentsProvider>{children}</DocForResidentsProvider>
+								<DocForResidentsProvider>
+									{/* Globalny provider dla toastów */}
+									<ToastProvider>{children}</ToastProvider>
+								</DocForResidentsProvider>
 							</AnnouncementProvider>
 						</MainProvider>
 					</ClientWrapper>

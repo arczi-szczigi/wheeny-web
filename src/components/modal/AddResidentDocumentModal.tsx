@@ -298,12 +298,11 @@ export default function AddResidentDocumentModal({
 					<IconCircle>
 						<img src='/assets/documentsEstate/folder.png' alt='folder' />
 					</IconCircle>
-					<Title>Dodaj dokument - zbiorczo lub indywidualnie</Title>
-					<Step>2/2</Step>
+					<Title>Dodaj dokument - zbiorczo</Title>
+					<Step>1/1</Step>
 				</Header>
 				<Subtitle>
-					Dodaj zbiorczo indywidualne dokumenty dla mieszkańców lub dla
-					wybranego mieszkańca.
+					Dodaj zbiorczo dokumenty dla mieszkańców.
 				</Subtitle>
 				<form onSubmit={handleSubmit}>
 					<SearchWrapper>

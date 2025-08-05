@@ -31,6 +31,8 @@ export type Estate = {
 	organisation: string;
 	createdAt: string;
 	updatedAt: string;
+	contractUrl?: string;
+	status?: "unverified" | "verifying" | "verified";
 };
 
 export type Organisation = {
@@ -149,16 +151,26 @@ type MainContextType = {
 	reload: () => void;
 	forceReload: () => void;
 	createOrganisation: (
-		data: Omit<
-			Organisation,
-			"_id" | "estates" | "createdAt" | "updatedAt" | "manager"
+		data: Omit<Organisation, "_id" | "estates" | "createdAt" | "updatedAt">
+	) => Promise<void>;
+	updateOrganisation: (
+		id: string,
+		data: Partial<
+			Omit<
+				Organisation,
+				"_id" | "estates" | "createdAt" | "updatedAt" | "manager"
+			>
 		>
 	) => Promise<void>;
+	deleteOrganisation: (id: string) => Promise<void>;
 	createEstate: (
 		data: Omit<Estate, "_id" | "createdAt" | "updatedAt"> & {
 			organisation: string;
 		}
 	) => Promise<void>;
+	createEstateWithFile: (formData: FormData) => Promise<void>;
+	updateEstate: (id: string, data: Partial<Estate>) => Promise<void>;
+	deleteEstate: (id: string) => Promise<void>;
 	getEstateById: (id: string) => Estate | undefined;
 	tickets: Ticket[];
 	payments: Payment[];
@@ -172,6 +184,8 @@ type MainContextType = {
 	updateBalance: (id: string, data: Partial<Balance>) => Promise<void>;
 	token: string | null;
 	login: (token: string) => void;
+	reloadPayments: () => void; // <--- DODAJ TO
+	reloadBalances: () => void;
 };
 
 const MainContext = createContext<MainContextType>({
@@ -187,7 +201,12 @@ const MainContext = createContext<MainContextType>({
 	reload: () => {},
 	forceReload: () => {},
 	createOrganisation: async () => {},
+	updateOrganisation: async () => {},
+	deleteOrganisation: async () => {},
 	createEstate: async () => {},
+	createEstateWithFile: async () => {},
+	updateEstate: async () => {},
+	deleteEstate: async () => {},
 	getEstateById: () => undefined,
 	tickets: [],
 	payments: [],
@@ -201,6 +220,8 @@ const MainContext = createContext<MainContextType>({
 	updateBalance: async () => {},
 	token: null,
 	login: () => {},
+	reloadPayments: () => {},
+	reloadBalances: () => {},
 });
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
@@ -388,6 +409,7 @@ export const MainProvider = ({ children }: { children: ReactNode }) => {
 					"token:",
 					token
 				);
+
 				const [pr, br, dr, gr, rr] = await Promise.all([
 					fetch(`${API_URL}/payments/estate/${selectedEstateId}`, {
 						headers: { Authorization: `Bearer ${token}` },
@@ -405,18 +427,27 @@ export const MainProvider = ({ children }: { children: ReactNode }) => {
 						headers: { Authorization: `Bearer ${token}` },
 					}),
 				]);
-				setPayments(pr.ok ? await pr.json() : []);
-				setBalances(br.ok ? await br.json() : []);
-				setDocuments(dr.ok ? await dr.json() : []);
-				setGarbageCalendars(gr.ok ? await gr.json() : []);
-				setFlatResidents(rr.ok ? await rr.json() : []);
+
+				// TU JEST NAJWAŻNIEJSZA ZMIANA:
+				const paymentsData = pr.ok ? await pr.json() : [];
+				const balancesData = br.ok ? await br.json() : [];
+				const documentsData = dr.ok ? await dr.json() : [];
+				const garbageCalendarsData = gr.ok ? await gr.json() : [];
+				const flatResidentsData = rr.ok ? await rr.json() : [];
+
 				console.log("[EC] Ustawiam estate dane:", {
-					payments: pr.ok ? await pr.clone().json() : [],
-					balances: br.ok ? await br.clone().json() : [],
-					documents: dr.ok ? await dr.clone().json() : [],
-					garbageCalendars: gr.ok ? await gr.clone().json() : [],
-					flatResidents: rr.ok ? await rr.clone().json() : [],
+					payments: paymentsData,
+					balances: balancesData,
+					documents: documentsData,
+					garbageCalendars: garbageCalendarsData,
+					flatResidents: flatResidentsData,
 				});
+
+				setPayments(paymentsData);
+				setBalances(balancesData);
+				setDocuments(documentsData);
+				setGarbageCalendars(garbageCalendarsData);
+				setFlatResidents(flatResidentsData);
 			} catch (e) {
 				setPayments([]);
 				setBalances([]);
@@ -455,6 +486,8 @@ export const MainProvider = ({ children }: { children: ReactNode }) => {
 	//     DODATKOWE METODY
 	// ==========================
 
+	// src/context/EstateContext.tsx  (wewnątrz MainProvider)
+
 	const createOrganisation = async (
 		data: Omit<
 			Organisation,
@@ -463,21 +496,147 @@ export const MainProvider = ({ children }: { children: ReactNode }) => {
 	) => {
 		setLoading(true);
 		setError(null);
+
 		try {
 			const token = getToken();
 			if (!token) throw new Error("Brak tokena JWT!");
+
+			const managerId = manager?._id || localStorage.getItem("managerId");
+			if (!managerId) throw new Error("Brak managera (niezalogowany?)");
+
+			const { companyName, email, phone, accountStatus, address, ...rest } =
+				data as any;
+
+			const payload = {
+				companyName,
+				email,
+				phone,
+				accountStatus: accountStatus || "unconfirmed",
+				manager: managerId,
+				city: address?.city ?? rest.city,
+				zipCode: address?.zipCode ?? rest.zipCode,
+				street: address?.street ?? rest.street,
+				buildingNumber: address?.buildingNumber ?? rest.buildingNumber,
+			};
+
+			console.log("[EC] ▶︎ createOrganisation.payload =", payload);
+			console.log("[EC] ▶︎ createOrganisation.token   =", token);
+
 			const res = await fetch(`${API_URL}/organisations`, {
 				method: "POST",
 				headers: {
 					"Content-Type": "application/json",
 					Authorization: `Bearer ${token}`,
 				},
-				body: JSON.stringify(data),
+				body: JSON.stringify(payload),
 			});
-			if (!res.ok) throw new Error("Błąd tworzenia organizacji");
-			forceReload(); // <- NAJWAŻNIEJSZE!
+
+			console.log("[EC] ◀︎ createOrganisation.status =", res.status);
+
+			if (!res.ok) {
+				let errorBody = null;
+				try {
+					errorBody = await res.clone().json();
+				} catch (_) {}
+				console.log("[EC] ◀︎ createOrganisation.errorBody =", errorBody);
+				throw new Error(errorBody?.message || "Błąd tworzenia organizacji");
+			}
+
+			// --- Sukces: dodaj lokalnie do listy organisations ---
+			const newOrg: Organisation = await res.json();
+
+			setOrganisations(prevOrgs => [
+				...prevOrgs,
+				{
+					...newOrg,
+					estates: newOrg.estates || [],
+				},
+			]);
+
+			// (opcjonalnie możesz tu od razu wybrać nową organizację)
+			// setSelectedOrganisationId(newOrg._id);
 		} catch (e: any) {
 			setError(e.message || "Błąd tworzenia organizacji");
+			console.log("[EC] ◀︎ createOrganisation.CATCH =", e);
+		} finally {
+			setLoading(false);
+		}
+	};
+
+	const updateOrganisation = async (
+		id: string,
+		data: Partial<
+			Omit<
+				Organisation,
+				"_id" | "estates" | "createdAt" | "updatedAt" | "manager"
+			>
+		>
+	) => {
+		setLoading(true);
+		setError(null);
+		try {
+			const token = getToken();
+			if (!token) throw new Error("Brak tokena JWT!");
+
+			// Rozwijamy adres jeśli podano:
+			let payload: any = { ...data };
+			if (data.address) {
+				payload = {
+					...payload,
+					city: data.address.city,
+					zipCode: data.address.zipCode,
+					street: data.address.street,
+					buildingNumber: data.address.buildingNumber,
+				};
+				delete payload.address;
+			}
+
+			const res = await fetch(`${API_URL}/organisations/${id}`, {
+				method: "PATCH",
+				headers: {
+					"Content-Type": "application/json",
+					Authorization: `Bearer ${token}`,
+				},
+				body: JSON.stringify(payload),
+			});
+			if (!res.ok) {
+				let errorBody = null;
+				try {
+					errorBody = await res.clone().json();
+				} catch {}
+				throw new Error(errorBody?.message || "Błąd edycji organizacji");
+			}
+			forceReload();
+		} catch (e: any) {
+			setError(e.message || "Błąd edycji organizacji");
+		} finally {
+			setLoading(false);
+		}
+	};
+
+	const deleteOrganisation = async (id: string) => {
+		setLoading(true);
+		setError(null);
+		try {
+			const token = getToken();
+			if (!token) throw new Error("Brak tokena JWT!");
+
+			const res = await fetch(`${API_URL}/organisations/${id}`, {
+				method: "DELETE",
+				headers: {
+					Authorization: `Bearer ${token}`,
+				},
+			});
+			if (!res.ok) {
+				let errorBody = null;
+				try {
+					errorBody = await res.clone().json();
+				} catch {}
+				throw new Error(errorBody?.message || "Błąd usuwania organizacji");
+			}
+			forceReload();
+		} catch (e: any) {
+			setError(e.message || "Błąd usuwania organizacji");
 		} finally {
 			setLoading(false);
 		}
@@ -493,6 +652,8 @@ export const MainProvider = ({ children }: { children: ReactNode }) => {
 		try {
 			const token = getToken();
 			if (!token) throw new Error("Brak tokena JWT!");
+
+			console.log("[EC] ▶︎ createEstate.payload =", data);
 			const res = await fetch(`${API_URL}/estates`, {
 				method: "POST",
 				headers: {
@@ -501,11 +662,116 @@ export const MainProvider = ({ children }: { children: ReactNode }) => {
 				},
 				body: JSON.stringify(data),
 			});
-			if (!res.ok) throw new Error("Błąd tworzenia osiedla");
+			console.log("[EC] ◀︎ createEstate.status =", res.status);
+			if (!res.ok) {
+				// wyciągnij możliwy message
+				let bodyErr = null;
+				try {
+					bodyErr = await res.clone().json();
+				} catch {}
+				throw new Error(bodyErr?.message || "Błąd tworzenia osiedla");
+			}
 			forceReload();
 		} catch (e: any) {
 			setError(e.message || "Błąd tworzenia osiedla");
-			setLoading(false); // tylko jeśli błąd
+			console.log("[EC] ◀︎ createEstate.CATCH =", e);
+		} finally {
+			setLoading(false);
+		}
+	};
+
+	const createEstateWithFile = async (formData: FormData) => {
+		setLoading(true);
+		setError(null);
+		try {
+			const token = getToken();
+			if (!token) throw new Error("Brak tokena JWT!");
+
+			const res = await fetch(`${API_URL}/estates`, {
+				method: "POST",
+				headers: {
+					Authorization: `Bearer ${token}`,
+					// Content-Type NIE może być tutaj ustawione przy FormData!
+				},
+				body: formData,
+			});
+
+			if (!res.ok) {
+				let bodyErr = null;
+				try {
+					bodyErr = await res.clone().json();
+				} catch {}
+				throw new Error(bodyErr?.message || "Błąd tworzenia osiedla");
+			}
+			forceReload();
+		} catch (e: any) {
+			setError(e.message || "Błąd tworzenia osiedla");
+		} finally {
+			setLoading(false);
+		}
+	};
+
+	const updateEstate = async (id: string, data: Partial<Estate>) => {
+		setLoading(true);
+		setError(null);
+		try {
+			const token = getToken();
+			if (!token) throw new Error("Brak tokena JWT!");
+
+			console.log("[EC] ▶︎ updateEstate.payload =", data);
+			const res = await fetch(`${API_URL}/estates/${id}`, {
+				method: "PATCH",
+				headers: {
+					"Content-Type": "application/json",
+					Authorization: `Bearer ${token}`,
+				},
+				body: JSON.stringify(data),
+			});
+			console.log("[EC] ◀︎ updateEstate.status =", res.status);
+			if (!res.ok) {
+				let bodyErr = null;
+				try {
+					bodyErr = await res.clone().json();
+				} catch {}
+				throw new Error(bodyErr?.message || "Błąd aktualizacji osiedla");
+			}
+			forceReload();
+		} catch (e: any) {
+			setError(e.message || "Błąd aktualizacji osiedla");
+			console.log("[EC] ◀︎ updateEstate.CATCH =", e);
+		} finally {
+			setLoading(false);
+		}
+	};
+
+	const deleteEstate = async (id: string) => {
+		setLoading(true);
+		setError(null);
+		try {
+			const token = getToken();
+			if (!token) throw new Error("Brak tokena JWT!");
+
+			console.log("[EC] ▶︎ deleteEstate.id =", id);
+			const res = await fetch(`${API_URL}/estates/${id}`, {
+				method: "DELETE",
+				headers: {
+					Authorization: `Bearer ${token}`,
+				},
+			});
+			console.log("[EC] ◀︎ deleteEstate.status =", res.status);
+			if (!res.ok) {
+				let bodyErr = null;
+				try {
+					bodyErr = await res.clone().json();
+				} catch {}
+				throw new Error(bodyErr?.message || "Błąd usuwania osiedla");
+			}
+			forceReload();
+		} catch (e: any) {
+			setError(e.message || "Błąd usuwania osiedla");
+			console.log("[EC] ◀︎ deleteEstate.CATCH =", e);
+		} finally {
+			setLoading(false);
 		}
 	};
 
@@ -538,7 +804,7 @@ export const MainProvider = ({ children }: { children: ReactNode }) => {
 				}
 			);
 			if (!res.ok) throw new Error("Błąd importu pliku z zaliczkami");
-			forceReload();
+			setSelectedEstateId(selectedEstateId); // <----- DODAJ TO ZAMIAST forceReload()
 		} catch (e: any) {
 			setError(e.message || "Błąd importu pliku z zaliczkami");
 		} finally {
@@ -567,7 +833,7 @@ export const MainProvider = ({ children }: { children: ReactNode }) => {
 				}
 			);
 			if (!res.ok) throw new Error("Błąd importu pliku z saldami");
-			forceReload();
+			setSelectedEstateId(selectedEstateId); // <----- DODAJ TO ZAMIAST forceReload()
 		} catch (e: any) {
 			setError(e.message || "Błąd importu pliku z saldami");
 		} finally {
@@ -604,7 +870,7 @@ export const MainProvider = ({ children }: { children: ReactNode }) => {
 		try {
 			const token = getToken();
 			if (!token) throw new Error("Brak tokena JWT!");
-			const res = await fetch(`${API_URL}/balance/${id}`, {
+			const res = await fetch(`${API_URL}/balances/${id}`, {
 				method: "PATCH",
 				headers: {
 					"Content-Type": "application/json",
@@ -618,6 +884,19 @@ export const MainProvider = ({ children }: { children: ReactNode }) => {
 			setError(e.message || "Błąd zapisu zmian w saldzie");
 		} finally {
 			setLoading(false);
+		}
+	};
+
+	const reloadPayments = () => {
+		if (selectedEstateId) {
+			setSelectedEstateId(null);
+			setTimeout(() => setSelectedEstateId(selectedEstateId), 1);
+		}
+	};
+	const reloadBalances = () => {
+		if (selectedEstateId) {
+			setSelectedEstateId(null);
+			setTimeout(() => setSelectedEstateId(selectedEstateId), 1);
 		}
 	};
 
@@ -640,6 +919,9 @@ export const MainProvider = ({ children }: { children: ReactNode }) => {
 				forceReload,
 				createOrganisation,
 				createEstate,
+				createEstateWithFile,
+				updateEstate,
+				deleteEstate,
 				getEstateById,
 				tickets,
 				payments,
@@ -653,6 +935,10 @@ export const MainProvider = ({ children }: { children: ReactNode }) => {
 				updateBalance,
 				token,
 				login,
+				updateOrganisation,
+				deleteOrganisation,
+				reloadPayments,
+				reloadBalances,
 			}}>
 			{children}
 		</MainContext.Provider>

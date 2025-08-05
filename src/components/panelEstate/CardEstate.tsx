@@ -28,7 +28,9 @@ const Wrapper = styled.div<{ $selected?: boolean }>`
 const TopRow = styled.div`
 	display: flex;
 	justify-content: space-between;
+	align-items: center;
 `;
+
 const Code = styled.div`
 	color: black;
 	font-size: 20px;
@@ -49,6 +51,30 @@ const SelectBtn = styled.button<{ $selected?: boolean }>`
 	&:hover {
 		background: ${({ $selected }) => ($selected ? COLORS.accent2 : "#ffc800")};
 	}
+`;
+
+const StatusBtn = styled.button<{ $status: string }>`
+	border-radius: 30px;
+	border: none;
+	font-size: 12px;
+	padding: 8px 38px;
+	margin-left: 8px;
+	cursor: default;
+	${({ $status }) =>
+		$status === "unverified"
+			? `
+				background: #232323;
+				color: #fff;
+			`
+			: $status === "verifying"
+			? `
+				background: #E1F1FF;
+				color: #232323;
+			`
+			: `
+				display: none;
+			`}
+	pointer-events: none;
 `;
 
 const Line = styled.div`
@@ -135,6 +161,7 @@ export type CardEstateProps = {
 		newMessages: number;
 		newTickets: number;
 		inProgress: number;
+		status: "unverified" | "verifying" | "verified";
 	};
 	onSelect?: () => void;
 	isSelected?: boolean;
@@ -149,9 +176,17 @@ export const CardEstate: React.FC<CardEstateProps> = ({
 		<Wrapper $selected={isSelected}>
 			<TopRow>
 				<Code>{estate.name}</Code>
-				<SelectBtn $selected={isSelected} onClick={onSelect}>
-					{isSelected ? "Wybrane" : "Wybierz osiedle"}
-				</SelectBtn>
+				<div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+					{estate.status === "unverified" && (
+						<StatusBtn $status='unverified'>Zweryfikuj osiedle</StatusBtn>
+					)}
+					{estate.status === "verifying" && (
+						<StatusBtn $status='verifying'>W trakcie weryfikacji</StatusBtn>
+					)}
+					<SelectBtn $selected={isSelected} onClick={onSelect}>
+						{isSelected ? "Wybrane" : "Wybierz osiedle"}
+					</SelectBtn>
+				</div>
 			</TopRow>
 
 			<Line />

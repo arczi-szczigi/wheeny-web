@@ -1,22 +1,42 @@
 "use client";
-
 import React from "react";
 import { useMain } from "@/context/EstateContext";
 import { ImportFileModal } from "./ImportFileModal";
 
-type Props = { isOpen: boolean; onClose: () => void };
+type Props = {
+	isOpen: boolean;
+	onClose: () => void;
+	showToast?: (opts: { message: string; type: "success" | "error" }) => void;
+	reloadBalances?: () => void;
+};
 
-export const AddBalancesModal: React.FC<Props> = ({ isOpen, onClose }) => {
+const AddBalancesModal: React.FC<Props> = ({
+	isOpen,
+	onClose,
+	showToast,
+	reloadBalances,
+}) => {
 	const { importBalancesFile } = useMain();
 
 	return (
 		<ImportFileModal
 			isOpen={isOpen}
 			onClose={onClose}
-			title='Dodaj aktualne saldo mieszkańców'
+			title='Dodaj saldo mieszkańców'
 			templateLabel='Pobierz formatkę Excel'
-			templateHref='/assets/templates/balances_template.xlsx' // <- podmień ścieżkę jeśli inna
-			onImport={importBalancesFile}
+			templateHref='/assets/templates/Saldo czynszowe - wheeny formatka 2025.xlsx'
+			onImport={async file => {
+				try {
+					await importBalancesFile(file);
+					reloadBalances?.();
+					showToast?.({ message: "Plik został dodany", type: "success" });
+					onClose();
+				} catch (e) {
+					showToast?.({ message: "Błąd podczas importu pliku", type: "error" });
+				}
+			}}
 		/>
 	);
 };
+
+export default AddBalancesModal;

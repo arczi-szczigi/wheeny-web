@@ -95,6 +95,21 @@ const DropdownMenu = styled.div`
 	}
 `;
 
+const MenuButton = styled.button`
+	background: none;
+	border: none;
+	color: #202020;
+	font-size: 16px;
+	font-weight: 500;
+	padding: 7px 0;
+	cursor: pointer;
+	text-align: left;
+	transition: color 0.2s;
+	&:hover {
+		color: #ffd100;
+	}
+`;
+
 const LogoutButton = styled.button`
 	background: none;
 	border: none;
@@ -109,6 +124,12 @@ const LogoutButton = styled.button`
 	}
 `;
 
+const MenuSeparator = styled.div`
+	height: 1px;
+	background: #e0e0e0;
+	margin: 5px 0;
+`;
+
 export const HelloTop: React.FC = () => {
 	const { manager, logout } = useMain();
 	const router = useRouter();
@@ -117,6 +138,17 @@ export const HelloTop: React.FC = () => {
 	const handleLogout = () => {
 		logout();
 		router.push("/login");
+	};
+
+	const handleSettings = () => {
+		router.push("/settingsPanel");
+		setOpen(false);
+	};
+
+	const handleHelp = () => {
+		// TODO: Implementacja pomocy
+		console.log("Pomoc clicked");
+		setOpen(false);
 	};
 
 	return (
@@ -134,6 +166,9 @@ export const HelloTop: React.FC = () => {
 				<DropdownIcon src={ICON_SRC} alt='menu' />
 				{open && (
 					<DropdownMenu>
+						<MenuButton onClick={handleSettings}>Ustawienia</MenuButton>
+						<MenuButton onClick={handleHelp}>Pomoc</MenuButton>
+						<MenuSeparator />
 						<LogoutButton onClick={handleLogout}>Wyloguj</LogoutButton>
 					</DropdownMenu>
 				)}

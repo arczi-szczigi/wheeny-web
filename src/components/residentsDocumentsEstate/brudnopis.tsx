@@ -9,6 +9,26 @@ import AddEstateDocumentModal from "@/components/modal/AddEstateDocumentModal";
 import AddResidentDocumentModal from "@/components/modal/AddResidentDocumentModal";
 import { useAnnouncement } from "@/context/AnnouncementContext";
 
+// Funkcja pomocnicza do określania ikony na podstawie typu MIME
+const getDocumentIcon = (mimetype: string): string => {
+	const mimeType = mimetype.toLowerCase();
+	
+	if (mimeType.includes('pdf')) {
+		return '/assets/documentsEstate/pdf.png';
+	} else if (mimeType.includes('word') || mimeType.includes('docx') || mimeType.includes('doc')) {
+		return '/assets/documentsEstate/word.png';
+	} else if (mimeType.includes('doc')) {
+		return '/assets/documentsEstate/doc.png';
+	} else if (mimeType.includes('excel') || mimeType.includes('xlsx') || mimeType.includes('xls')) {
+		return '/assets/documentsEstate/doc.png'; // Możesz dodać ikonę Excel jeśli masz
+	} else if (mimeType.includes('powerpoint') || mimeType.includes('pptx') || mimeType.includes('ppt')) {
+		return '/assets/documentsEstate/doc.png'; // Możesz dodać ikonę PowerPoint jeśli masz
+	} else {
+		// Domyślna ikona dla innych typów plików
+		return '/assets/documentsEstate/doc.png';
+	}
+};
+
 // ---------- STYLES ----------
 const Container = styled.div`
 	width: 100%;
@@ -390,10 +410,10 @@ export default function DocumentListBox() {
 												rel='noreferrer'
 												download={doc.originalName}>
 												<img
-													src='/assets/documentsEstate/pdf.png'
+													src={getDocumentIcon(doc.mimetype)}
 													width={25}
 													height={25}
-													alt='pdf'
+													alt={doc.mimetype.replace("application/", "").toUpperCase()}
 												/>
 											</a>
 										</Td>
@@ -468,10 +488,10 @@ export default function DocumentListBox() {
 												rel='noreferrer'
 												download={doc.originalName}>
 												<img
-													src='/assets/documentsEstate/pdf.png'
+													src={getDocumentIcon(doc.mimetype)}
 													width={25}
 													height={25}
-													alt='pdf'
+													alt={doc.mimetype.replace("application/", "").toUpperCase()}
 												/>
 											</a>
 										</Td>

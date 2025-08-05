@@ -1,11 +1,12 @@
+// components//announcmentsPanel/AnnouncmentsListBox.tsx
+
 import React, { useEffect, useState } from "react";
 import styled from "styled-components";
 import AddAnnouncementModal from "../modal/AddAnnouncementModal";
 import EditAnnouncementModal from "../modal/EditAnnouncementModal";
 import { useAnnouncement } from "@/context/AnnouncementContext";
 import { useMain } from "@/context/EstateContext";
-
-// ... styled components bez zmian (masz wyżej, nie powtarzam tu dla czytelności) ...
+import SearchBarAnnouncement, { FilterStatus, SortValue } from "./SearchBarAnnouncement";
 
 const Container = styled.div`
 	width: 100vw;
@@ -52,63 +53,13 @@ const ControlsBar = styled.div`
 	align-items: center;
 `;
 
-const ButtonYellow = styled.button`
+// Info bar dla filtrów
+const InfoBar = styled.div`
+	margin: 16px 0 0 8px;
+	font-size: 13px;
+	color: #666;
 	display: flex;
-	align-items: center;
-	gap: 8px;
-	height: 40px;
-	background: #ffd100;
-	box-shadow: 1px 1px 10px rgba(0, 0, 0, 0.02);
-	border-radius: 30px;
-	padding: 0 22px;
-	border: none;
-	font-family: Roboto, sans-serif;
-	font-size: 12px;
-	color: #202020;
-	font-weight: 400;
-	letter-spacing: 0.6px;
-	cursor: pointer;
-`;
-
-const InputWrapper = styled.div`
-	display: flex;
-	align-items: center;
-	height: 40px;
-	width: 100%;
-	background: #fff;
-	border-radius: 30px;
-	box-shadow: 1px 1px 10px rgba(0, 0, 0, 0.02);
-	border: 0.5px solid #d9d9d9;
-	padding: 0 20px;
-	gap: 10px;
-`;
-
-const Input = styled.input`
-	border: none;
-	outline: none;
-	font-size: 12px;
-	color: #202020;
-	background: transparent;
-	font-family: Roboto, sans-serif;
-	width: 100%;
-`;
-
-const GrayButton = styled.button`
-	display: flex;
-	align-items: center;
-	gap: 7px;
-	height: 40px;
-	background: #f3f3f3;
-	border-radius: 30px;
-	border: none;
-	font-family: Roboto, sans-serif;
-	font-size: 12px;
-	color: #9d9d9d;
-	font-weight: 400;
-	letter-spacing: 0.6px;
-	padding: 0 23px;
-	cursor: pointer;
-	box-shadow: 1px 1px 10px rgba(0, 0, 0, 0.02);
+	gap: 18px;
 `;
 
 const TableWrapper = styled.div`
@@ -238,6 +189,8 @@ export default function AnnouncmentsListBox() {
 	} = useAnnouncement();
 
 	const [search, setSearch] = useState("");
+	const [filterStatus, setFilterStatus] = useState<FilterStatus>("all");
+	const [sortValue, setSortValue] = useState<SortValue>("az");
 	const [showAddModal, setShowAddModal] = useState(false);
 
 	// Obsługa modala edycji:
@@ -250,12 +203,59 @@ export default function AnnouncmentsListBox() {
 		if (selectedEstateId) fetchAnnouncements(selectedEstateId);
 	}, [selectedEstateId, fetchAnnouncements]);
 
-	const filtered = announcements.filter(
-		a =>
-			(String(a.estate) === String(selectedEstateId) ||
-				String(a.estateId) === String(selectedEstateId)) &&
-			a.title.toLowerCase().includes(search.toLowerCase())
-	);
+	// Funkcja filtrowania i sortowania ogłoszeń
+	const getFilteredAndSortedAnnouncements = () => {
+		let filtered = announcements.filter(
+			a =>
+				(String(a.estate) === String(selectedEstateId) ||
+					String(a.estateId) === String(selectedEstateId)) &&
+				a.title.toLowerCase().includes(search.toLowerCase())
+		);
+
+		// Filtrowanie po dacie
+		const now = new Date();
+		const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+		const oneMonthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+		const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+		const startOfWeek = new Date(now.getTime() - now.getDay() * 24 * 60 * 60 * 1000);
+
+		filtered = filtered.filter(announcement => {
+			const publishDate = new Date(announcement.publishedAt);
+			
+			switch (filterStatus) {
+				case "recent":
+					return publishDate >= sevenDaysAgo;
+				case "thisMonth":
+					return publishDate >= startOfMonth;
+				case "thisWeek":
+					return publishDate >= startOfWeek;
+				case "old":
+					return publishDate < oneMonthAgo;
+				default:
+					return true;
+			}
+		});
+
+		// Sortowanie
+		filtered.sort((a, b) => {
+			switch (sortValue) {
+				case "az":
+					return a.title.localeCompare(b.title, "pl");
+				case "za":
+					return b.title.localeCompare(a.title, "pl");
+				case "dateNewest":
+					return new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime();
+				case "dateOldest":
+					return new Date(a.publishedAt).getTime() - new Date(b.publishedAt).getTime();
+				default:
+					return 0;
+			}
+		});
+
+		return filtered;
+	};
+
+	const filtered = getFilteredAndSortedAnnouncements();
 
 	return (
 		<Container>
@@ -264,50 +264,51 @@ export default function AnnouncmentsListBox() {
 					<Title>Ogłoszenia</Title>
 				</Header>
 				<ControlsBar>
-					<ButtonYellow onClick={() => setShowAddModal(true)}>
-						<span style={{ fontSize: 17, marginRight: 4, lineHeight: 0.7 }}>
-							+
-						</span>
-						Dodaj ogłoszenie
-					</ButtonYellow>
-					<InputWrapper>
-						<span style={{ color: "#9d9d9d" }}>
-							<img
-								src='/assets/announcmentPanel/search.png'
-								alt='pdf'
-								width={25}
-								height={25}
-							/>
-						</span>
-						<Input
-							placeholder='Wyszukaj ogłoszenie'
-							value={search}
-							onChange={e => setSearch(e.target.value)}
-						/>
-					</InputWrapper>
-					<GrayButton>
-						<span style={{ fontSize: 16, color: "#9d9d9d" }}>
-							<img
-								src='/assets/announcmentPanel/filter.png'
-								alt='pdf'
-								width={25}
-								height={25}
-							/>
-						</span>
-						Filtrowanie
-					</GrayButton>
-					<GrayButton>
-						<span style={{ fontSize: 16, color: "#9d9d9d" }}>
-							<img
-								src='/assets/announcmentPanel/filter.png'
-								alt='pdf'
-								width={25}
-								height={25}
-							/>
-						</span>
-						Sortowanie
-					</GrayButton>
+					<SearchBarAnnouncement
+						onAddClick={() => setShowAddModal(true)}
+						onSearch={setSearch}
+						onFilterChange={setFilterStatus}
+						onSortChange={setSortValue}
+						filterValue={filterStatus}
+						sortValue={sortValue}
+						placeholder='Wyszukaj ogłoszenie'
+					/>
 				</ControlsBar>
+
+				<InfoBar>
+					<span>
+						Filtr:{" "}
+						<b>
+							{
+								{
+									all: "Wszystkie",
+									recent: "Ostatnie 7 dni",
+									thisMonth: "Ten miesiąc",
+									thisWeek: "Ten tydzień",
+									old: "Starsze niż miesiąc",
+								}[filterStatus]
+							}
+						</b>
+					</span>
+					<span>
+						Sort:{" "}
+						<b>
+							{
+								{
+									az: "A-Z",
+									za: "Z-A",
+									dateNewest: "Data (najnowsze)",
+									dateOldest: "Data (najstarsze)",
+								}[sortValue]
+							}
+						</b>
+					</span>
+					{search && (
+						<span>
+							Szukasz: <b>{search}</b>
+						</span>
+					)}
+				</InfoBar>
 				<TableWrapper>
 					<Table>
 						<TableHeader>

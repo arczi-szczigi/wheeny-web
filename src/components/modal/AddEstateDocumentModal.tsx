@@ -239,8 +239,8 @@ export default function AddEstateDocumentModal({
 							alt='folder'
 						/>
 					</IconCircle>
-					<ModalTitle>Dodaj dokument - zbiorczo lub indywidualnie</ModalTitle>
-					<ModalStep>1/2</ModalStep>
+					<ModalTitle>Dodaj dokument - indywidualnie</ModalTitle>
+					
 				</ModalHeader>
 				<ModalSubtitle>
 					Dodaj zbiorczo indywidualne dokumenty dla mieszkańców lub dla

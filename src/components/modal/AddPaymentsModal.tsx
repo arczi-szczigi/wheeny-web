@@ -1,12 +1,21 @@
 "use client";
-
 import React from "react";
 import { useMain } from "@/context/EstateContext";
 import { ImportFileModal } from "./ImportFileModal";
 
-type Props = { isOpen: boolean; onClose: () => void };
+type Props = {
+	isOpen: boolean;
+	onClose: () => void;
+	showToast?: (opts: { message: string; type: "success" | "error" }) => void;
+	reloadPayments?: () => void;
+};
 
-export const AddPaymentsModal: React.FC<Props> = ({ isOpen, onClose }) => {
+const AddPaymentsModal: React.FC<Props> = ({
+	isOpen,
+	onClose,
+	showToast,
+	reloadPayments,
+}) => {
 	const { importPaymentsFile } = useMain();
 
 	return (
@@ -15,8 +24,19 @@ export const AddPaymentsModal: React.FC<Props> = ({ isOpen, onClose }) => {
 			onClose={onClose}
 			title='Dodaj miesięczne zaliczki'
 			templateLabel='Pobierz formatkę Excel'
-			templateHref='/assets/templates/payments_template.xlsx' // <- podmień ścieżkę jeśli inna
-			onImport={importPaymentsFile}
+			templateHref='/assets/templates/Zaliczki czynszowe - wheeny formatka 2025.xlsx'
+			onImport={async file => {
+				try {
+					await importPaymentsFile(file);
+					reloadPayments?.();
+					showToast?.({ message: "Plik został dodany", type: "success" });
+					onClose();
+				} catch (e) {
+					showToast?.({ message: "Błąd podczas importu pliku", type: "error" });
+				}
+			}}
 		/>
 	);
 };
+
+export default AddPaymentsModal;

@@ -2,20 +2,24 @@
 
 import React, { useState } from "react";
 import styled from "styled-components";
-
 import { Sidebar } from "@/components/Sidebar";
 import { HelloTop } from "@/components/top/HelloTop";
 import { useMain } from "@/context/EstateContext";
 
-// ─── Modale ───────────────────────────────────────────────────────
-import { AddPaymentsModal } from "@/components/modal/AddPaymentsModal";
-import { AddBalancesModal } from "@/components/modal/AddBalancesModal";
+// Komponenty:
+import SearchBarAdvancePayment, { FilterStatus, SortValue } from "@/components/advancePayment/SearchBarAdvancePayment";
 
-// ───────────────────────────────────────────────────────────────────
-//  Styled Components
-// ───────────────────────────────────────────────────────────────────
+// Modale do importu plików:
+import AddPaymentsModal from "@/components/modal/AddPaymentsModal";
+import AddBalancesModal from "@/components/modal/AddBalancesModal";
+
+// Toasty:
+import { useToast } from "@/components/toast/useToast";
+import ToastContainer from "@/components/toast/ToastContainer";
+
 const MAX_WIDTH = 1400;
 
+// --- STYLE ---
 const Outer = styled.div`
 	display: flex;
 	min-height: 100vh;
@@ -106,63 +110,14 @@ const ControlsBar = styled.div`
 	padding: 0 40px;
 `;
 
-const ButtonYellow = styled.button`
+// Info bar dla filtrów
+const InfoBar = styled.div`
+	margin: 16px 0 0 8px;
+	font-size: 13px;
+	color: #666;
 	display: flex;
-	align-items: center;
-	gap: 8px;
-	height: 40px;
-	background: #ffd100;
-	box-shadow: 1px 1px 10px rgba(0, 0, 0, 0.02);
-	border-radius: 30px;
-	padding: 0 22px;
-	border: none;
-	font-family: Roboto, sans-serif;
-	font-size: 12px;
-	color: #202020;
-	font-weight: 400;
-	letter-spacing: 0.6px;
-	cursor: pointer;
-`;
-
-const InputWrapper = styled.div`
-	display: flex;
-	align-items: center;
-	height: 40px;
-	width: 340px;
-	background: #fff;
-	border-radius: 30px;
-	box-shadow: 1px 1px 10px rgba(0, 0, 0, 0.02);
-	border: 0.5px solid #d9d9d9;
-	padding: 0 18px;
-	gap: 10px;
-`;
-
-const Input = styled.input`
-	border: none;
-	outline: none;
-	font-size: 12px;
-	color: #202020;
-	background: transparent;
-	font-family: Roboto, sans-serif;
-	width: 100%;
-`;
-
-const GrayButton = styled.button`
-	display: flex;
-	align-items: center;
-	gap: 7px;
-	height: 40px;
-	background: #f3f3f3;
-	border-radius: 30px;
-	border: none;
-	font-family: Roboto, sans-serif;
-	font-size: 12px;
-	color: #9d9d9d;
-	font-weight: 400;
-	letter-spacing: 0.6px;
-	padding: 0 23px;
-	cursor: pointer;
-	box-shadow: 1px 1px 10px rgba(0, 0, 0, 0.02);
+	gap: 18px;
+	padding: 0 40px;
 `;
 
 const TableWrapper = styled.div`
@@ -237,24 +192,153 @@ const EditButton = styled.button`
 	margin-left: 8px;
 `;
 
-// ───────────────────────────────────────────────────────────────────
-//  Component
-// ───────────────────────────────────────────────────────────────────
 export default function AdvancePaymentPage() {
 	const [activeTab, setActiveTab] = useState<0 | 1>(0); // 0 = czynsz, 1 = saldo
 	const [search, setSearch] = useState("");
-	const [showModal, setShowModal] = useState<"payments" | "balances" | null>(
-		null
-	);
+	const [filterStatus, setFilterStatus] = useState<FilterStatus>("all");
+	const [sortValue, setSortValue] = useState<SortValue>("az");
+	const [showAddPaymentsModal, setShowAddPaymentsModal] = useState(false);
+	const [showAddBalancesModal, setShowAddBalancesModal] = useState(false);
 
-	const { payments, balances, loading, error, selectedEstateId } = useMain();
+	const {
+		payments,
+		balances,
+		loading,
+		error,
+		selectedEstateId,
+		updatePayment,
+		updateBalance,
+		reloadPayments,
+		reloadBalances,
+	} = useMain();
 
-	console.log("selectedEstateId", selectedEstateId);
-	console.log("payments", payments);
-	console.log("balances", balances);
+	// Toast
+	const { toasts, removeToast, showToast } = useToast();
 
-	if (!selectedEstateId)
-		return (
+	// Funkcja filtrowania i sortowania dla payments
+	const getFilteredAndSortedPayments = () => {
+		let filtered = payments.filter(
+			p =>
+				p.estateId === selectedEstateId &&
+				p.flatNumber.toLowerCase().includes(search.toLowerCase())
+		);
+
+		// Filtrowanie
+		if (filterStatus === "withBalance") {
+			filtered = filtered.filter(p => p.amount > 0);
+		} else if (filterStatus === "withoutBalance") {
+			filtered = filtered.filter(p => p.amount === 0);
+		} else if (filterStatus === "overdue") {
+			// Tutaj można dodać logikę dla przeterminowanych płatności
+			// Na razie zostawiamy wszystkie
+		}
+
+		// Sortowanie
+		filtered.sort((a, b) => {
+			switch (sortValue) {
+				case "az":
+					return a.flatNumber.localeCompare(b.flatNumber, "pl");
+				case "za":
+					return b.flatNumber.localeCompare(a.flatNumber, "pl");
+				case "amountAsc":
+					return a.amount - b.amount;
+				case "amountDesc":
+					return b.amount - a.amount;
+				default:
+					return 0;
+			}
+		});
+
+		return filtered;
+	};
+
+	// Funkcja filtrowania i sortowania dla balances
+	const getFilteredAndSortedBalances = () => {
+		let filtered = balances.filter(
+			b =>
+				b.estateId === selectedEstateId &&
+				b.flatNumber.toLowerCase().includes(search.toLowerCase())
+		);
+
+		// Filtrowanie
+		if (filterStatus === "withBalance") {
+			filtered = filtered.filter(b => b.amount > 0);
+		} else if (filterStatus === "withoutBalance") {
+			filtered = filtered.filter(b => b.amount === 0);
+		} else if (filterStatus === "overdue") {
+			// Tutaj można dodać logikę dla przeterminowanych sald
+			// Na razie zostawiamy wszystkie
+		}
+
+		// Sortowanie
+		filtered.sort((a, b) => {
+			switch (sortValue) {
+				case "az":
+					return a.flatNumber.localeCompare(b.flatNumber, "pl");
+				case "za":
+					return b.flatNumber.localeCompare(a.flatNumber, "pl");
+				case "amountAsc":
+					return a.amount - b.amount;
+				case "amountDesc":
+					return b.amount - a.amount;
+				default:
+					return 0;
+			}
+		});
+
+		return filtered;
+	};
+
+	const filteredPayments = getFilteredAndSortedPayments();
+	const filteredBalances = getFilteredAndSortedBalances();
+
+	// Edycja payments
+	const [editingPaymentId, setEditingPaymentId] = useState<string | null>(null);
+	const [editingPaymentAmount, setEditingPaymentAmount] = useState<number>(0);
+	const [editingPaymentBankAccount, setEditingPaymentBankAccount] =
+		useState<string>("");
+
+	const startEditPayment = (row: (typeof payments)[0]) => {
+		setEditingPaymentId(row._id);
+		setEditingPaymentAmount(row.amount);
+		setEditingPaymentBankAccount(row.bankAccount);
+	};
+	const handleSavePayment = async () => {
+		if (editingPaymentId) {
+			await updatePayment(editingPaymentId, {
+				amount: editingPaymentAmount,
+				bankAccount: editingPaymentBankAccount,
+			});
+			setEditingPaymentId(null);
+			reloadPayments?.();
+		}
+	};
+	const cancelEditPayment = () => setEditingPaymentId(null);
+
+	// Edycja balances
+	const [editingBalanceId, setEditingBalanceId] = useState<string | null>(null);
+	const [editingBalanceAmount, setEditingBalanceAmount] = useState<number>(0);
+
+	const startEditBalance = (row: (typeof balances)[0]) => {
+		setEditingBalanceId(row._id);
+		setEditingBalanceAmount(row.amount);
+	};
+	const handleSaveBalance = async () => {
+		if (editingBalanceId) {
+			await updateBalance(editingBalanceId, {
+				amount: editingBalanceAmount,
+			});
+			setEditingBalanceId(null);
+			reloadBalances?.();
+		}
+	};
+	const cancelEditBalance = () => setEditingBalanceId(null);
+
+	return (
+		<>
+			{/* Toasty */}
+			<ToastContainer toasts={toasts} removeToast={removeToast} />
+
 			<Outer>
 				<Sidebar />
 				<Central>
@@ -265,191 +349,256 @@ export default function AdvancePaymentPage() {
 						<Header>
 							<Title>Rozliczenia osiedla</Title>
 							<SubTitle>
-								Wybierz najpierw osiedle, żeby zobaczyć dane o rozliczeniach.
+								Tutaj ustalasz ogólne stawki na podstawie których system oblicza
+								miesięczną zaliczkę dla każdego lokalu i wyświetla ją w
+								aplikacji mobilnej mieszkańców.
 							</SubTitle>
 						</Header>
+
+						<TabsWrapper>
+							<TabButton
+								active={activeTab === 0}
+								onClick={() => setActiveTab(0)}>
+								<img
+									src='/assets/advancePayment/list.png'
+									width={15}
+									height={15}
+									alt='list'
+								/>
+								Miesięczne zaliczki mieszkańców – czynsz
+							</TabButton>
+							<TabButton
+								active={activeTab === 1}
+								onClick={() => setActiveTab(1)}>
+								<img
+									src='/assets/advancePayment/list.png'
+									width={15}
+									height={15}
+									alt='list'
+								/>
+								Aktualne saldo mieszkańców
+							</TabButton>
+						</TabsWrapper>
+
+						<ControlsBar>
+							<SearchBarAdvancePayment
+								onAddClick={() =>
+									activeTab === 0
+										? setShowAddPaymentsModal(true)
+										: setShowAddBalancesModal(true)
+								}
+								onSearch={setSearch}
+								onFilterChange={setFilterStatus}
+								onSortChange={setSortValue}
+								filterValue={filterStatus}
+								sortValue={sortValue}
+								placeholder='Wyszukaj mieszkanie'
+								activeTab={activeTab}
+							/>
+						</ControlsBar>
+
+						<InfoBar>
+							<span>
+								Filtr:{" "}
+								<b>
+									{
+										{
+											all: "Wszystkie",
+											withBalance: "Z saldem",
+											withoutBalance: "Bez salda",
+											overdue: "Przeterminowane",
+										}[filterStatus]
+									}
+								</b>
+							</span>
+							<span>
+								Sort:{" "}
+								<b>
+									{
+										{
+											az: "A-Z",
+											za: "Z-A",
+											amountAsc: "Kwota rosnąco",
+											amountDesc: "Kwota malejąco",
+										}[sortValue]
+									}
+								</b>
+							</span>
+							{search && (
+								<span>
+									Szukasz: <b>{search}</b>
+								</span>
+							)}
+						</InfoBar>
+
+						<TableWrapper>
+							{loading && (
+								<div
+									style={{
+										padding: 30,
+										textAlign: "center",
+										color: "#9d9d9d",
+									}}>
+									Ładowanie danych...
+								</div>
+							)}
+							{error && (
+								<div style={{ padding: 30, textAlign: "center", color: "red" }}>
+									Błąd: {error}
+								</div>
+							)}
+
+							{!loading && !error && (
+								<Table>
+									{activeTab === 0 ? (
+										<>
+											<TableHeader>
+												<Th>Mieszkanie</Th>
+												<Th>Kwota czynszu</Th>
+												<Th>Nr konta</Th>
+												<Th />
+											</TableHeader>
+											{filteredPayments.map(row => (
+												<TableRow key={row._id}>
+													<Td>{row.flatNumber}</Td>
+													<Td>
+														{editingPaymentId === row._id ? (
+															<input
+																type='number'
+																value={editingPaymentAmount}
+																onChange={e =>
+																	setEditingPaymentAmount(
+																		Number(e.target.value)
+																	)
+																}
+																style={{
+																	width: "80px",
+																	padding: "2px 6px",
+																	borderRadius: "7px",
+																	border: "1px solid #ccc",
+																}}
+															/>
+														) : (
+															`${row.amount} zł`
+														)}
+													</Td>
+													<Td>
+														{editingPaymentId === row._id ? (
+															<input
+																type='text'
+																value={editingPaymentBankAccount}
+																onChange={e =>
+																	setEditingPaymentBankAccount(e.target.value)
+																}
+																style={{
+																	width: "160px",
+																	padding: "2px 6px",
+																	borderRadius: "7px",
+																	border: "1px solid #ccc",
+																}}
+															/>
+														) : (
+															row.bankAccount
+														)}
+													</Td>
+													<Td
+														style={{
+															display: "flex",
+															justifyContent: "flex-end",
+														}}>
+														{editingPaymentId === row._id ? (
+															<>
+																<EditButton onClick={handleSavePayment}>
+																	Zapisz
+																</EditButton>
+																<EditButton onClick={cancelEditPayment}>
+																	Anuluj
+																</EditButton>
+															</>
+														) : (
+															<EditButton onClick={() => startEditPayment(row)}>
+																Edytuj dane
+															</EditButton>
+														)}
+													</Td>
+												</TableRow>
+											))}
+										</>
+									) : (
+										<>
+											<TableHeader>
+												<Th>Mieszkanie</Th>
+												<Th>Saldo</Th>
+												<Th />
+											</TableHeader>
+											{filteredBalances.map(row => (
+												<TableRow key={row._id}>
+													<Td>{row.flatNumber}</Td>
+													<Td>
+														{editingBalanceId === row._id ? (
+															<input
+																type='number'
+																value={editingBalanceAmount}
+																onChange={e =>
+																	setEditingBalanceAmount(
+																		Number(e.target.value)
+																	)
+																}
+																style={{
+																	width: "80px",
+																	padding: "2px 6px",
+																	borderRadius: "7px",
+																	border: "1px solid #ccc",
+																}}
+															/>
+														) : (
+															`${row.amount} zł`
+														)}
+													</Td>
+													<Td
+														style={{
+															display: "flex",
+															justifyContent: "flex-end",
+														}}>
+														{editingBalanceId === row._id ? (
+															<>
+																<EditButton onClick={handleSaveBalance}>
+																	Zapisz
+																</EditButton>
+																<EditButton onClick={cancelEditBalance}>
+																	Anuluj
+																</EditButton>
+															</>
+														) : (
+															<EditButton onClick={() => startEditBalance(row)}>
+																Edytuj saldo
+															</EditButton>
+														)}
+													</Td>
+												</TableRow>
+											))}
+										</>
+									)}
+								</Table>
+							)}
+						</TableWrapper>
 					</MainPanel>
 				</Central>
 			</Outer>
-		);
 
-	const filteredPayments = payments.filter(
-		p =>
-			p.estateId === selectedEstateId &&
-			p.flatNumber.toLowerCase().includes(search.toLowerCase())
-	);
-	const filteredBalances = balances.filter(
-		b =>
-			b.estateId === selectedEstateId &&
-			b.flatNumber.toLowerCase().includes(search.toLowerCase())
-	);
-
-	const addBtnLabel =
-		activeTab === 0
-			? "Dodaj/Edytuj kwoty zaliczek"
-			: "Dodaj/Edytuj kwoty salda";
-
-	return (
-		<Outer>
-			<Sidebar />
-
-			<Central>
-				<HelloWrapper>
-					<HelloTop />
-				</HelloWrapper>
-
-				<MainPanel>
-					<Header>
-						<Title>Rozliczenia osiedla</Title>
-						<SubTitle>
-							Tutaj ustalasz ogólne stawki na podstawie których system oblicza
-							miesięczną zaliczkę dla każdego lokalu i wyświetla ją w aplikacji
-							mobilnej mieszkańców.
-						</SubTitle>
-					</Header>
-
-					<TabsWrapper>
-						<TabButton active={activeTab === 0} onClick={() => setActiveTab(0)}>
-							<img
-								src='/assets/advancePayment/list.png'
-								width={15}
-								height={15}
-								alt='list'
-							/>
-							Miesięczne zaliczki mieszkańców – czynsz
-						</TabButton>
-						<TabButton active={activeTab === 1} onClick={() => setActiveTab(1)}>
-							<img
-								src='/assets/advancePayment/list.png'
-								width={15}
-								height={15}
-								alt='list'
-							/>
-							Aktualne saldo mieszkańców
-						</TabButton>
-					</TabsWrapper>
-
-					<ControlsBar>
-						<ButtonYellow
-							onClick={() =>
-								setShowModal(activeTab === 0 ? "payments" : "balances")
-							}>
-							<img
-								src='/assets/advancePayment/plus.png'
-								width={15}
-								height={15}
-								alt='plus'
-							/>
-							{addBtnLabel}
-						</ButtonYellow>
-
-						<InputWrapper>
-							<img
-								src='/assets/advancePayment/search.png'
-								width={15}
-								height={15}
-								alt='search'
-							/>
-							<Input
-								placeholder='Wyszukaj mieszkanie'
-								value={search}
-								onChange={e => setSearch(e.target.value)}
-							/>
-						</InputWrapper>
-
-						<GrayButton>
-							<img
-								src='/assets/advancePayment/filter.png'
-								width={20}
-								height={20}
-								alt='filter'
-							/>
-							Filtrowanie
-						</GrayButton>
-						<GrayButton>
-							<img
-								src='/assets/advancePayment/filter.png'
-								width={20}
-								height={20}
-								alt='sort'
-							/>
-							Sortowanie
-						</GrayButton>
-					</ControlsBar>
-
-					<TableWrapper>
-						{loading && (
-							<div
-								style={{ padding: 30, textAlign: "center", color: "#9d9d9d" }}>
-								Ładowanie danych...
-							</div>
-						)}
-						{error && (
-							<div style={{ padding: 30, textAlign: "center", color: "red" }}>
-								Błąd: {error}
-							</div>
-						)}
-
-						{!loading && !error && (
-							<Table>
-								{activeTab === 0 ? (
-									<>
-										<TableHeader>
-											<Th>Mieszkanie</Th>
-											<Th>Kwota czynszu</Th>
-											<Th>Nr konta</Th>
-											<Th />
-										</TableHeader>
-										{filteredPayments.map(row => (
-											<TableRow key={row._id}>
-												<Td>{row.flatNumber}</Td>
-												<Td>{row.amount} zł</Td>
-												<Td>{row.bankAccount}</Td>
-												<Td
-													style={{
-														display: "flex",
-														justifyContent: "flex-end",
-													}}>
-													<EditButton>Edytuj dane</EditButton>
-												</Td>
-											</TableRow>
-										))}
-									</>
-								) : (
-									<>
-										<TableHeader>
-											<Th>Mieszkanie</Th>
-											<Th>Saldo</Th>
-											<Th />
-										</TableHeader>
-										{filteredBalances.map(row => (
-											<TableRow key={row._id}>
-												<Td>{row.flatNumber}</Td>
-												<Td>{row.amount} zł</Td>
-												<Td
-													style={{
-														display: "flex",
-														justifyContent: "flex-end",
-													}}>
-													<EditButton>Edytuj saldo</EditButton>
-												</Td>
-											</TableRow>
-										))}
-									</>
-								)}
-							</Table>
-						)}
-					</TableWrapper>
-				</MainPanel>
-
-				{/* ─── Modale */}
-				{showModal === "payments" && (
-					<AddPaymentsModal isOpen onClose={() => setShowModal(null)} />
-				)}
-				{showModal === "balances" && (
-					<AddBalancesModal isOpen onClose={() => setShowModal(null)} />
-				)}
-			</Central>
-		</Outer>
+			{/* Modale */}
+			<AddPaymentsModal
+				isOpen={showAddPaymentsModal}
+				onClose={() => setShowAddPaymentsModal(false)}
+				showToast={showToast}
+				reloadPayments={reloadPayments}
+			/>
+			<AddBalancesModal
+				isOpen={showAddBalancesModal}
+				onClose={() => setShowAddBalancesModal(false)}
+				showToast={showToast}
+				reloadBalances={reloadBalances}
+			/>
+		</>
 	);
 }

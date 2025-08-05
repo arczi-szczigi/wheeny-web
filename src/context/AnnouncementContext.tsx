@@ -12,6 +12,7 @@ export type Announcement = {
 	estateId?: string;
 	createdBy?: string;
 	author?: string;
+	imageUrl?: string;
 };
 
 // === ODPADY (Garbage) ===
@@ -20,6 +21,8 @@ export type GarbageCalendar = {
 	estateId: string;
 	year: number;
 	dates: string[];
+	infoFileUrl?: string;
+	infoFileOriginalName?: string;
 };
 
 // === MIESZKAŃCY (Residents) ===
@@ -48,6 +51,7 @@ type AnnouncementContextType = {
 		content: string;
 		publishedAt: string;
 		estateId: string;
+		image?: File | null;
 	}) => Promise<void>;
 	deleteAnnouncement: (id: string, estateId: string) => Promise<void>;
 	editAnnouncement: (
@@ -62,12 +66,14 @@ type AnnouncementContextType = {
 		estateId: string;
 		year: number;
 		dates: string[];
+		file?: File | null;
 	}) => Promise<void>;
 	editGarbageCalendar: (
 		id: string,
-		data: Partial<GarbageCalendar>,
+		data: { year?: number; dates?: string[]; file?: File | null },
 		estateId: string
 	) => Promise<void>;
+
 	deleteGarbageCalendar: (id: string, estateId: string) => Promise<void>;
 	// --- MIESZKAŃCY ---
 	residents: Resident[];
@@ -149,19 +155,28 @@ export const AnnouncementProvider: React.FC<{ children: React.ReactNode }> = ({
 			content: string;
 			publishedAt: string;
 			estateId: string;
+			image?: File | null;
 		}) => {
 			setLoading(true);
 			setError(null);
 			try {
 				const token = localStorage.getItem("token");
 				if (!token) throw new Error("Brak tokena JWT!");
+
+				const formData = new FormData();
+				formData.append("title", data.title);
+				formData.append("content", data.content);
+				formData.append("publishedAt", data.publishedAt);
+				formData.append("estateId", data.estateId);
+				if (data.image) formData.append("image", data.image);
+
 				const res = await fetch(`${API_URL}/announcements`, {
 					method: "POST",
 					headers: {
-						"Content-Type": "application/json",
 						Authorization: `Bearer ${token}`,
+						// NIE dodawaj "Content-Type", browser sam ustawi boundary dla FormData!
 					},
-					body: JSON.stringify(data),
+					body: formData,
 				});
 				if (!res.ok) {
 					const errText = await res.text();
@@ -252,20 +267,30 @@ export const AnnouncementProvider: React.FC<{ children: React.ReactNode }> = ({
 	}, []);
 
 	const addGarbageCalendar = useCallback(
-		async (data: { estateId: string; year: number; dates: string[] }) => {
+		async (data: {
+			estateId: string;
+			year: number;
+			dates: string[];
+			file?: File | null;
+		}) => {
 			setLoading(true);
 			setError(null);
 			try {
 				const token = localStorage.getItem("token");
 				if (!token) throw new Error("Brak tokena JWT!");
+
+				const formData = new FormData();
+				formData.append("estateId", data.estateId);
+				formData.append("year", String(data.year));
+				data.dates.forEach(date => formData.append("dates", date));
+				if (data.file) formData.append("file", data.file);
+
 				const res = await fetch(`${API_URL}/garbage`, {
 					method: "POST",
-					headers: {
-						"Content-Type": "application/json",
-						Authorization: `Bearer ${token}`,
-					},
-					body: JSON.stringify(data),
+					headers: { Authorization: `Bearer ${token}` }, // NIE dodawaj "Content-Type"!
+					body: formData,
 				});
+
 				if (!res.ok) {
 					const errText = await res.text();
 					throw new Error("Błąd dodawania harmonogramu: " + errText);
@@ -282,20 +307,35 @@ export const AnnouncementProvider: React.FC<{ children: React.ReactNode }> = ({
 	);
 
 	const editGarbageCalendar = useCallback(
-		async (id: string, data: Partial<GarbageCalendar>, estateId: string) => {
+		async (
+			id: string,
+			data: { year?: number; dates?: string[]; file?: File | null },
+			estateId: string
+		) => {
 			setLoading(true);
 			setError(null);
 			try {
 				const token = localStorage.getItem("token");
 				if (!token) throw new Error("Brak tokena JWT!");
+
+				const formData = new FormData();
+
+				// Dodajemy tylko te pola, które przekazano
+				if (data.year !== undefined) formData.append("year", String(data.year));
+				if (data.dates && Array.isArray(data.dates)) {
+					data.dates.forEach(date => formData.append("dates", date));
+				}
+				if (data.file) formData.append("file", data.file);
+
 				const res = await fetch(`${API_URL}/garbage/${id}`, {
 					method: "PATCH",
 					headers: {
-						"Content-Type": "application/json",
 						Authorization: `Bearer ${token}`,
+						// NIE dodawaj Content-Type przy FormData!
 					},
-					body: JSON.stringify(data),
+					body: formData,
 				});
+
 				if (!res.ok) throw new Error("Błąd edycji harmonogramu");
 				await fetchGarbageCalendars(estateId);
 			} catch (e: any) {

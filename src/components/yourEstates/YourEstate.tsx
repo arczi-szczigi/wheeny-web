@@ -1,11 +1,12 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import styled from "styled-components";
+import { useRouter } from "next/navigation";
 import { useMain } from "@/context/EstateContext";
 import type { Estate } from "@/context/EstateContext";
 
-// Kontenery i layouty
+// --- Styled Components ---
 const Wrapper = styled.div`
 	width: 100%;
 	display: flex;
@@ -128,6 +129,42 @@ const CardEditButton = styled.button`
 	}
 `;
 
+const SaveButton = styled.button`
+	padding: 9px 20px;
+	background: #32b471;
+	border-radius: 30px;
+	color: #fff;
+	font-size: 10px;
+	font-family: Roboto;
+	font-weight: 400;
+	letter-spacing: 0.5px;
+	border: none;
+	cursor: pointer;
+	transition: opacity 0.2s;
+	&:hover {
+		opacity: 0.9;
+	}
+	margin-left: 10px;
+`;
+
+const CancelButton = styled.button`
+	padding: 9px 20px;
+	background: #cccccc;
+	border-radius: 30px;
+	color: #202020;
+	font-size: 10px;
+	font-family: Roboto;
+	font-weight: 400;
+	letter-spacing: 0.5px;
+	border: none;
+	cursor: pointer;
+	transition: opacity 0.2s;
+	&:hover {
+		opacity: 0.9;
+	}
+	margin-left: 10px;
+`;
+
 const FormSection = styled.div`
 	background: #f3f3f3;
 	border-radius: 10px;
@@ -189,6 +226,18 @@ const FieldValue = styled.span`
 	letter-spacing: 0.5px;
 `;
 
+const FieldInput = styled.input`
+	font-size: 12px;
+	font-family: Roboto;
+	font-weight: 400;
+	letter-spacing: 0.5px;
+	border: none;
+	outline: none;
+	background: transparent;
+	width: 100%;
+	color: #202020;
+`;
+
 const HalfWidthColumn = styled.div`
 	flex: 1 1 0;
 	display: flex;
@@ -243,10 +292,10 @@ const VerifyCol = styled.div`
 	gap: 5px;
 `;
 
-const StatusBox = styled.div`
+const StatusBox = styled.div<{ bg?: string }>`
 	height: 40px;
 	padding: 10px;
-	background: #98c580;
+	background: ${({ bg }) => bg || "#98c580"};
 	box-shadow: 1px 1px 10px rgba(0, 0, 0, 0.02);
 	border-radius: 10px;
 	display: flex;
@@ -261,6 +310,42 @@ const StatusValue = styled.span`
 	letter-spacing: 0.5px;
 `;
 
+const MessagePopup = styled.div`
+	position: fixed;
+	top: 50px;
+	right: 50px;
+	background: #202020;
+	color: #fff;
+	padding: 18px 32px;
+	border-radius: 16px;
+	font-size: 16px;
+	z-index: 2000;
+	box-shadow: 0 4px 16px rgba(0, 0, 0, 0.16);
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	animation: fadeIn 0.2s;
+	@keyframes fadeIn {
+		from {
+			opacity: 0;
+			right: 20px;
+		}
+		to {
+			opacity: 1;
+			right: 50px;
+		}
+	}
+`;
+
+const Link = styled.a`
+	color: #2269b2;
+	text-decoration: underline;
+	font-size: 11px;
+	cursor: pointer;
+`;
+
+// ---------------------- LOGIKA ----------------------
+
 function formatAddress(estate: Estate | null) {
 	if (!estate || !estate.address) return "";
 	const a = estate.address;
@@ -269,24 +354,139 @@ function formatAddress(estate: Estate | null) {
 		.join(", ");
 }
 
-export const YourEstate: React.FC = () => {
-	const { organisations, selectedEstateId, loading, error, documents } =
-		useMain();
+const statusColors = {
+	verified: "#98c580",
+	verifying: "#ffe46c",
+	unverified: "#e18c7d",
+};
 
-	// Pobierz wszystkie osiedla z organizacji i znajdź wybrane po id
-	const estates: Estate[] = organisations.flatMap(org => org.estates || []);
-	const estate: Estate | null =
+const statusLabels: Record<string, string> = {
+	verified: "Zweryfikowane",
+	verifying: "W trakcie weryfikacji",
+	unverified: "NIEZWERYFIKOWANE",
+};
+
+export const YourEstate: React.FC = () => {
+	const {
+		organisations,
+		selectedEstateId,
+		loading,
+		error,
+		documents,
+		forceReload,
+	} = useMain();
+
+	const router = useRouter();
+
+	// --- wyciągamy osiedle ---
+	const estates = organisations.flatMap(org => org.estates || []);
+	const estate =
 		(estates.find((e: Estate) => e._id === selectedEstateId) as Estate) ||
 		(estates[0] as Estate) ||
 		null;
 
-	const verifyDocument =
-		documents && documents.length > 0
-			? documents[0].originalName
-			: "Brak dokumentu";
+	// --- status ---
+	const status = estate?.status || "unverified";
+	const statusLabel = statusLabels[status] || "Nieznany";
+	const statusColor = statusColors[status] || "#e18c7d";
+
+	// --- dokumenty ---
+	const estateDocuments =
+		documents?.filter(d => d.estate === estate?._id) || [];
+	const verifyDoc = estateDocuments.length ? estateDocuments[0] : null;
+
+	// --- obsługa popupu info ---
+	const [popupMsg, setPopupMsg] = useState<string | null>(null);
+
+	// --- tryb edycji ---
+	const [edit, setEdit] = useState(false);
+	const [editData, setEditData] = useState({
+		name: estate?.name || "",
+		bankAccountNumber: estate?.bankAccountNumber || "",
+		rentDueDate: estate?.rentDueDate || "",
+		numberOfFlats: estate?.numberOfFlats?.toString() || "",
+		address: {
+			street: estate?.address?.street || "",
+			buildingNumber: estate?.address?.buildingNumber || "",
+			city: estate?.address?.city || "",
+			zipCode: estate?.address?.zipCode || "",
+		},
+	});
+
+	useEffect(() => {
+		if (!estate) return;
+		setEditData({
+			name: estate.name || "",
+			bankAccountNumber: estate.bankAccountNumber || "",
+			rentDueDate: estate.rentDueDate || "",
+			numberOfFlats: estate.numberOfFlats?.toString() || "",
+			address: {
+				street: estate.address?.street || "",
+				buildingNumber: estate.address?.buildingNumber || "",
+				city: estate.address?.city || "",
+				zipCode: estate.address?.zipCode || "",
+			},
+		});
+	}, [estate]);
+
+	const handleInput = (field: string, value: string) => {
+		if (["street", "buildingNumber", "city", "zipCode"].includes(field)) {
+			setEditData(prev => ({
+				...prev,
+				address: { ...prev.address, [field]: value },
+			}));
+		} else {
+			setEditData(prev => ({
+				...prev,
+				[field]: value,
+			}));
+		}
+	};
+
+	const handleSave = async () => {
+		if (!estate) return;
+		try {
+			await fetch(`/api/estates/${estate._id}`, {
+				method: "PATCH",
+				headers: {
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify({
+					name: editData.name,
+					bankAccountNumber: editData.bankAccountNumber,
+					rentDueDate: editData.rentDueDate,
+					numberOfFlats: Number(editData.numberOfFlats),
+					address: editData.address,
+				}),
+			});
+			setPopupMsg("Dane osiedla zostały zaktualizowane.");
+			setEdit(false);
+			forceReload();
+		} catch (e) {
+			setPopupMsg("Błąd zapisu danych osiedla.");
+		}
+	};
+
+	const handleVerify = async () => {
+		if (!estate) return;
+		setPopupMsg("Prośba o weryfikacje została wysłana");
+	};
+
+	useEffect(() => {
+		if (popupMsg) {
+			const t = setTimeout(() => setPopupMsg(null), 3000);
+			return () => clearTimeout(t);
+		}
+	}, [popupMsg]);
+
+	const handleEstateSwitch = () => {
+		router.push("/panelEstate");
+	};
 
 	return (
 		<Wrapper>
+			{popupMsg && <MessagePopup>{popupMsg}</MessagePopup>}
+
 			{loading ? (
 				<Card>
 					<FieldValue>Ładowanie danych osiedla...</FieldValue>
@@ -315,13 +515,26 @@ export const YourEstate: React.FC = () => {
 								</BannerInfo>
 							</BannerContent>
 						</div>
-						<BannerButton>Przełącz osiedle</BannerButton>
+						<BannerButton onClick={handleEstateSwitch}>
+							Przełącz osiedle
+						</BannerButton>
 					</Banner>
 
 					<Card>
 						<CardHeaderRow>
 							<CardTitle>Dane Osiedla</CardTitle>
-							<CardEditButton>Edytuj dane osiedla</CardEditButton>
+							{edit ? (
+								<div>
+									<SaveButton onClick={handleSave}>Zapisz</SaveButton>
+									<CancelButton onClick={() => setEdit(false)}>
+										Anuluj
+									</CancelButton>
+								</div>
+							) : (
+								<CardEditButton onClick={() => setEdit(true)}>
+									Edytuj dane osiedla
+								</CardEditButton>
+							)}
 						</CardHeaderRow>
 
 						<FormSection>
@@ -335,7 +548,14 @@ export const YourEstate: React.FC = () => {
 										<FieldLabel>Nazwa osiedla</FieldLabel>
 									</FieldLabelRow>
 									<FieldValueBox>
-										<FieldValue>{estate.name || "-"}</FieldValue>
+										{edit ? (
+											<FieldInput
+												value={editData.name}
+												onChange={e => handleInput("name", e.target.value)}
+											/>
+										) : (
+											<FieldValue>{estate.name || "-"}</FieldValue>
+										)}
 									</FieldValueBox>
 								</FieldColumn>
 							</FieldsRow>
@@ -350,12 +570,31 @@ export const YourEstate: React.FC = () => {
 										<FieldLabel>Ulica</FieldLabel>
 									</FieldLabelRow>
 									<FieldValueBox>
-										<FieldValue>
-											{estate.address?.street || "-"}
-											{estate.address?.buildingNumber
-												? " " + estate.address?.buildingNumber
-												: ""}
-										</FieldValue>
+										{edit ? (
+											<>
+												<FieldInput
+													placeholder='Ulica'
+													style={{ width: "70%" }}
+													value={editData.address.street}
+													onChange={e => handleInput("street", e.target.value)}
+												/>
+												<FieldInput
+													placeholder='Nr'
+													style={{ width: "25%" }}
+													value={editData.address.buildingNumber}
+													onChange={e =>
+														handleInput("buildingNumber", e.target.value)
+													}
+												/>
+											</>
+										) : (
+											<FieldValue>
+												{estate.address?.street || "-"}
+												{estate.address?.buildingNumber
+													? " " + estate.address?.buildingNumber
+													: ""}
+											</FieldValue>
+										)}
 									</FieldValueBox>
 								</FieldColumn>
 								<FieldColumn>
@@ -367,7 +606,14 @@ export const YourEstate: React.FC = () => {
 										<FieldLabel>Miasto</FieldLabel>
 									</FieldLabelRow>
 									<FieldValueBox>
-										<FieldValue>{estate.address?.city || "-"}</FieldValue>
+										{edit ? (
+											<FieldInput
+												value={editData.address.city}
+												onChange={e => handleInput("city", e.target.value)}
+											/>
+										) : (
+											<FieldValue>{estate.address?.city || "-"}</FieldValue>
+										)}
 									</FieldValueBox>
 								</FieldColumn>
 								<FieldColumn>
@@ -379,7 +625,14 @@ export const YourEstate: React.FC = () => {
 										<FieldLabel>Kod pocztowy</FieldLabel>
 									</FieldLabelRow>
 									<FieldValueBox>
-										<FieldValue>{estate.address?.zipCode || "-"}</FieldValue>
+										{edit ? (
+											<FieldInput
+												value={editData.address.zipCode}
+												onChange={e => handleInput("zipCode", e.target.value)}
+											/>
+										) : (
+											<FieldValue>{estate.address?.zipCode || "-"}</FieldValue>
+										)}
 									</FieldValueBox>
 								</FieldColumn>
 							</FieldsRow>
@@ -394,7 +647,16 @@ export const YourEstate: React.FC = () => {
 										<FieldLabel>Nr głównego konta bankowego</FieldLabel>
 									</FieldLabelRow>
 									<FieldValueBox>
-										<FieldValue>{estate.bankAccountNumber || "-"}</FieldValue>
+										{edit ? (
+											<FieldInput
+												value={editData.bankAccountNumber}
+												onChange={e =>
+													handleInput("bankAccountNumber", e.target.value)
+												}
+											/>
+										) : (
+											<FieldValue>{estate.bankAccountNumber || "-"}</FieldValue>
+										)}
 									</FieldValueBox>
 								</FieldColumn>
 							</FieldsRow>
@@ -409,11 +671,21 @@ export const YourEstate: React.FC = () => {
 										<FieldLabel>Czynsz płatny do</FieldLabel>
 									</FieldLabelRow>
 									<FieldValueBox>
-										<FieldValue>
-											{estate.rentDueDate
-												? `do ${estate.rentDueDate} każdego miesiąca`
-												: "-"}
-										</FieldValue>
+										{edit ? (
+											<FieldInput
+												placeholder='np. 10'
+												value={editData.rentDueDate}
+												onChange={e =>
+													handleInput("rentDueDate", e.target.value)
+												}
+											/>
+										) : (
+											<FieldValue>
+												{estate.rentDueDate
+													? `do ${estate.rentDueDate} każdego miesiąca`
+													: "-"}
+											</FieldValue>
+										)}
 									</FieldValueBox>
 								</HalfWidthColumn>
 								<HalfWidthColumn>
@@ -425,11 +697,21 @@ export const YourEstate: React.FC = () => {
 										<FieldLabel>Ilość mieszkań</FieldLabel>
 									</FieldLabelRow>
 									<FieldValueBox>
-										<FieldValue>
-											{typeof estate.numberOfFlats === "number"
-												? estate.numberOfFlats
-												: "-"}
-										</FieldValue>
+										{edit ? (
+											<FieldInput
+												type='number'
+												value={editData.numberOfFlats}
+												onChange={e =>
+													handleInput("numberOfFlats", e.target.value)
+												}
+											/>
+										) : (
+											<FieldValue>
+												{typeof estate.numberOfFlats === "number"
+													? estate.numberOfFlats
+													: "-"}
+											</FieldValue>
+										)}
 									</FieldValueBox>
 								</HalfWidthColumn>
 							</FieldsRow>
@@ -437,7 +719,9 @@ export const YourEstate: React.FC = () => {
 
 						<VerifyHeaderRow>
 							<VerifyTitle>Weryfikacja osiedla</VerifyTitle>
-							<VerifyButton>Zweryfikuj ponownie</VerifyButton>
+							<VerifyButton onClick={handleVerify}>
+								Zweryfikuj ponownie
+							</VerifyButton>
 						</VerifyHeaderRow>
 
 						<VerifySection>
@@ -450,7 +734,28 @@ export const YourEstate: React.FC = () => {
 									<FieldLabel>Dokument weryfikujący osiedle</FieldLabel>
 								</FieldLabelRow>
 								<FieldValueBox>
-									<FieldValue>{verifyDocument}</FieldValue>
+									{estate.contractUrl ? (
+										<Link
+											href={
+												estate.contractUrl.startsWith("http")
+													? estate.contractUrl
+													: `${process.env.NEXT_PUBLIC_API_URL}${estate.contractUrl}`
+											}
+											target='_blank'
+											rel='noopener noreferrer'
+											download>
+											Dokumenty osiedla
+										</Link>
+									) : verifyDoc ? (
+										<Link
+											href={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${verifyDoc.filename}`}
+											target='_blank'
+											rel='noopener noreferrer'>
+											{verifyDoc.originalName}
+										</Link>
+									) : (
+										<FieldValue>Brak dokumentu</FieldValue>
+									)}
 								</FieldValueBox>
 							</VerifyCol>
 							<VerifyCol>
@@ -461,8 +766,8 @@ export const YourEstate: React.FC = () => {
 									/>
 									<FieldLabel>Status</FieldLabel>
 								</FieldLabelRow>
-								<StatusBox>
-									<StatusValue>Zweryfikowane</StatusValue>
+								<StatusBox bg={statusColor}>
+									<StatusValue>{statusLabel}</StatusValue>
 								</StatusBox>
 							</VerifyCol>
 						</VerifySection>

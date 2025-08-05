@@ -1,3 +1,5 @@
+// components/modal/ResidentsModal.tsx
+
 import React, { useState, useRef } from "react";
 import styled from "styled-components";
 import { useAnnouncement } from "@/context/AnnouncementContext";
@@ -228,6 +230,10 @@ const ErrorInfo = styled.div`
 	font-weight: 500;
 	margin: 12px 0 0 0;
 	text-align: left;
+	a {
+		color: #007bff;
+		text-decoration: underline;
+	}
 `;
 
 // Folder icon
@@ -253,7 +259,7 @@ const ResidentsModal: React.FC<Props> = ({ open, onClose, estateId }) => {
 		null
 	);
 	const [excelFile, setExcelFile] = useState<File | null>(null);
-	const [error, setError] = useState<string | null>(null);
+	const [error, setError] = useState<React.ReactNode | null>(null);
 
 	const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -288,7 +294,27 @@ const ResidentsModal: React.FC<Props> = ({ open, onClose, estateId }) => {
 			setExcelFile(null);
 			onClose();
 		} catch (e: any) {
-			setError(e.message || "Błąd importu pliku");
+			if (
+				typeof e.message === "string" &&
+				e.message.includes("Brak poprawnych danych mieszkańców w pliku Excel")
+			) {
+				setError(
+					<>
+						Błąd importu mieszkańców. Upewnij się, że plik jest poprawny.
+						<br />
+						Potrzebujesz pomocy?{" "}
+						<a
+							href='https://www.wheeny.com/pomoc'
+							target='_blank'
+							rel='noopener noreferrer'>
+							Skontaktuj się z nami
+						</a>
+						.
+					</>
+				);
+			} else {
+				setError(e.message || "Błąd importu pliku");
+			}
 		}
 	};
 
@@ -339,14 +365,28 @@ const ResidentsModal: React.FC<Props> = ({ open, onClose, estateId }) => {
 			<InstructionBox>
 				<InstructionTitle>INTRUKCJA DODAWANIA MIESZKAŃCÓW:</InstructionTitle>
 				<InstructionList>
-					<li>Pobierz formatkę pliku Excel.</li>
+					<li>
+						<a
+							href='/assets/templates/Lista najemców osiedla - wheeny formatka 2025.xlsx'
+							download
+							style={{
+								color: "#007bff",
+								textDecoration: "underline",
+								fontWeight: 500,
+							}}>
+							Pobierz formatkę pliku Excel
+						</a>
+					</li>
 					<li>Przygotuj plik zgodnie z danymi zawartymi w Excel.</li>
 					<li>Dodaj gotowy plik Excel poniżej.</li>
 				</InstructionList>
 				<DownloadBtn
 					type='button'
 					onClick={() =>
-						window.open("/excel-template/residents.xlsx", "_blank")
+						window.open(
+							"/assets/templates/Lista najemców osiedla - wheeny formatka 2025.xlsx",
+							"_blank"
+						)
 					}>
 					Pobierz formatkę Excel
 				</DownloadBtn>

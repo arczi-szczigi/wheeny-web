@@ -1,11 +1,12 @@
-// ResidentsInfoListBox.tsx
+// components/ResidentsInfoListBox.tsx
+
 "use client";
 
 import React, { useState, useMemo } from "react";
 import styled from "styled-components";
-import { FiPlus, FiSearch, FiChevronDown } from "react-icons/fi";
 import ResidentsModal from "@/components/modal/ResidentsModal";
 import { Resident } from "@/context/AnnouncementContext";
+import SearchBarResidents, { FilterStatus, SortValue } from "./SearchBarResidents";
 
 interface ResidentsInfoListBoxProps {
 	estateId: string;
@@ -22,6 +23,8 @@ interface ResidentsInfoListBoxProps {
 
 const Container = styled.div`
 	width: 100%;
+	max-width: 1400px;
+	margin: 0 auto;
 	background: #f3f3f3;
 	border-radius: 16px;
 	padding: 24px 24px 16px 24px;
@@ -34,58 +37,14 @@ const ActionsBar = styled.div`
 	gap: 18px;
 	width: 100%;
 `;
-const AddOwnerButton = styled.button`
+
+// Info bar dla filtrów
+const InfoBar = styled.div`
+	margin: 16px 0 0 8px;
+	font-size: 13px;
+	color: #666;
 	display: flex;
-	align-items: center;
-	background: #ffd100;
-	box-shadow: 1px 1px 10px rgba(0, 0, 0, 0.02);
-	border-radius: 30px;
-	padding: 0 20px;
-	height: 40px;
-	font-family: Roboto, sans-serif;
-	font-weight: 400;
-	font-size: 12px;
-	letter-spacing: 0.6px;
-	color: #202020;
-	border: none;
-	cursor: pointer;
-	gap: 8px;
-`;
-const SearchInputWrap = styled.div`
-	flex: 1;
-	display: flex;
-	align-items: center;
-	background: #fff;
-	box-shadow: 1px 1px 10px rgba(0, 0, 0, 0.02);
-	border-radius: 30px;
-	padding: 0 20px;
-	height: 40px;
-`;
-const SearchInput = styled.input`
-	border: none;
-	outline: none;
-	font-family: Roboto, sans-serif;
-	font-size: 12px;
-	width: 100%;
-	color: #202020;
-	background: transparent;
-	margin-left: 8px;
-`;
-const CircleBox = styled.button<{ active?: boolean }>`
-	display: flex;
-	align-items: center;
-	background: #fff;
-	border-radius: 30px;
-	padding: 0 20px;
-	height: 40px;
-	border: none;
-	box-shadow: 1px 1px 10px rgba(0, 0, 0, 0.02);
-	gap: 6px;
-	font-family: Roboto, sans-serif;
-	font-size: 12px;
-	color: #9d9d9d;
-	font-weight: 400;
-	cursor: pointer;
+	gap: 18px;
 `;
 const TableHead = styled.div`
 	display: flex;
@@ -104,6 +63,12 @@ const Th = styled.div<{ email?: boolean; phone?: boolean }>`
 	color: #9d9d9d;
 	letter-spacing: 0.5px;
 	text-align: left;
+	&:first-child {
+		padding-left: 32px;
+	}
+	&:last-child {
+		padding-right: 32px;
+	}
 `;
 const Td = styled.div<{ email?: boolean; phone?: boolean }>`
 	min-width: ${({ email, phone }) =>
@@ -114,9 +79,15 @@ const Td = styled.div<{ email?: boolean; phone?: boolean }>`
 	color: #202020;
 	letter-spacing: 0.5px;
 	text-align: left;
-	white-space: ${({ email }) => (email ? "normal" : "nowrap")};
+	white-space: pre-line;
 	overflow: hidden;
 	text-overflow: ellipsis;
+	&:first-child {
+		padding-left: 32px;
+	}
+	&:last-child {
+		padding-right: 32px;
+	}
 `;
 const ResidentsList = styled.div`
 	display: flex;
@@ -132,6 +103,7 @@ const ResidentRow = styled.div`
 	border-bottom: 1px solid #dadada;
 	font-family: Roboto, sans-serif;
 `;
+
 const Actions = styled.div`
 	display: flex;
 	gap: 10px;
@@ -171,6 +143,22 @@ const EditInput = styled.input`
 	color: #202020;
 `;
 
+const CheckBox = styled.input.attrs({ type: "checkbox" })`
+	width: 18px;
+	height: 18px;
+	accent-color: white;
+	cursor: pointer;
+	border-radius: 5px;
+	margin: 0;
+`;
+
+// Funkcja do renderowania każdej wartości w osobnej linii
+function renderMultiLine(text?: string | number) {
+	if (text === undefined || text === null) return null;
+	if (typeof text === "number") return <div>{text}</div>;
+	return text.split(",").map((item, i) => <div key={i}>{item.trim()}</div>);
+}
+
 export const ResidentsInfoListBox: React.FC<ResidentsInfoListBoxProps> = ({
 	estateId,
 	residents,
@@ -179,24 +167,74 @@ export const ResidentsInfoListBox: React.FC<ResidentsInfoListBoxProps> = ({
 	editResident,
 	deleteResident,
 }) => {
-	const [search, setSearch] = useState<string>("");
 	const [modalOpen, setModalOpen] = useState(false);
 	const [editId, setEditId] = useState<string | null>(null);
 	const [editData, setEditData] = useState<Partial<Resident>>({});
 	const [editLoading, setEditLoading] = useState(false);
 	const [deleteLoadingId, setDeleteLoadingId] = useState<string | null>(null);
 
+	// --- SEARCH / FILTER / SORT STATE ---
+	const [searchValue, setSearchValue] = useState("");
+	const [filterStatus, setFilterStatus] = useState<FilterStatus>("all");
+	const [sortValue, setSortValue] = useState<SortValue>("flatNumber");
+
 	const filteredResidents = useMemo(() => {
-		if (!search.trim()) return residents;
-		const lower = search.toLowerCase();
-		return residents.filter(
-			r =>
-				`${r.flatNumber}`.toLowerCase().includes(lower) ||
-				(r.name ?? "").toLowerCase().includes(lower) ||
-				(r.email ?? "").toLowerCase().includes(lower) ||
-				(r.phone ?? "").toLowerCase().includes(lower)
-		);
-	}, [residents, search]);
+		return residents
+			.filter(r => {
+				// Wyszukiwanie
+				const s = searchValue.trim().toLowerCase();
+				if (s) {
+					const searchFields = [
+						r.flatNumber,
+						r.name,
+						r.email,
+						r.phone,
+					]
+						.filter(Boolean)
+						.map(val => String(val).toLowerCase());
+					
+					if (!searchFields.some(field => field.includes(s))) {
+						return false;
+					}
+				}
+
+				// Filtrowanie
+				switch (filterStatus) {
+					case "withGarage":
+						return r.garage?.trim().toUpperCase() === "TAK";
+					case "withoutGarage":
+						return r.garage?.trim().toUpperCase() === "NIE";
+					case "withStorage":
+						return r.storage?.trim().toUpperCase() === "TAK";
+					case "withoutStorage":
+						return r.storage?.trim().toUpperCase() === "NIE";
+					case "withConsent":
+						return r.appConsent?.trim().toUpperCase() === "TAK";
+					case "withoutConsent":
+						return r.appConsent?.trim().toUpperCase() === "NIE";
+					default:
+						return true;
+				}
+			})
+			.sort((a, b) => {
+				switch (sortValue) {
+					case "flatNumber":
+						return a.flatNumber.localeCompare(b.flatNumber, "pl");
+					case "flatNumberDesc":
+						return b.flatNumber.localeCompare(a.flatNumber, "pl");
+					case "name":
+						return (a.name || "").localeCompare(b.name || "", "pl");
+					case "nameDesc":
+						return (b.name || "").localeCompare(a.name || "", "pl");
+					case "area":
+						return (a.area || 0) - (b.area || 0);
+					case "areaDesc":
+						return (b.area || 0) - (a.area || 0);
+					default:
+						return 0;
+				}
+			});
+	}, [residents, searchValue, filterStatus, sortValue]);
 
 	const handleDelete = async (id: string) => {
 		if (!confirm("Na pewno usunąć mieszkańca?")) return;
@@ -217,24 +255,54 @@ export const ResidentsInfoListBox: React.FC<ResidentsInfoListBoxProps> = ({
 	return (
 		<Container>
 			<ActionsBar>
-				<AddOwnerButton onClick={() => setModalOpen(true)}>
-					<FiPlus size={16} /> Dodaj właściciela/i
-				</AddOwnerButton>
-				<SearchInputWrap>
-					<FiSearch size={16} color='#9d9d9d' />
-					<SearchInput
-						placeholder='Wyszukaj właściciela'
-						value={search}
-						onChange={e => setSearch(e.target.value)}
-					/>
-				</SearchInputWrap>
-				<CircleBox>
-					Filtrowanie <FiChevronDown size={16} />
-				</CircleBox>
-				<CircleBox>
-					Sortowanie <FiChevronDown size={16} />
-				</CircleBox>
+				<SearchBarResidents
+					onAddClick={() => setModalOpen(true)}
+					onSearch={setSearchValue}
+					onFilterChange={setFilterStatus}
+					onSortChange={setSortValue}
+					filterValue={filterStatus}
+					sortValue={sortValue}
+					placeholder='Wyszukaj mieszkańca po numerze mieszkania, imieniu, nazwisku, email lub telefonie'
+				/>
 			</ActionsBar>
+			<InfoBar>
+				<span>
+					Filtr:{" "}
+					<b>
+						{
+							{
+								all: "Wszyscy",
+								withGarage: "Z garażem",
+								withoutGarage: "Bez garażu",
+								withStorage: "Z komórką",
+								withoutStorage: "Bez komórki",
+								withConsent: "Z zgodą",
+								withoutConsent: "Bez zgody",
+							}[filterStatus]
+						}
+					</b>
+				</span>
+				<span>
+					Sort:{" "}
+					<b>
+						{
+							{
+								flatNumber: "Numer mieszkania A-Z",
+								flatNumberDesc: "Numer mieszkania Z-A",
+								name: "Imię i nazwisko A-Z",
+								nameDesc: "Imię i nazwisko Z-A",
+								area: "Metraż rosnąco",
+								areaDesc: "Metraż malejąco",
+							}[sortValue]
+						}
+					</b>
+				</span>
+				{searchValue && (
+					<span>
+						Szukasz: <b>{searchValue}</b>
+					</span>
+				)}
+			</InfoBar>
 			<TableHead>
 				<Th>Mieszkanie</Th>
 				<Th>Imię i Nazwisko</Th>
@@ -252,7 +320,11 @@ export const ResidentsInfoListBox: React.FC<ResidentsInfoListBoxProps> = ({
 				) : error ? (
 					<Td>Błąd: {error}</Td>
 				) : filteredResidents.length === 0 ? (
-					<Td>Brak wyników.</Td>
+					<Td>
+						{searchValue || filterStatus !== "all" 
+							? "Brak mieszkańców spełniających kryteria wyszukiwania." 
+							: "Brak mieszkańców w tym osiedlu."}
+					</Td>
 				) : (
 					filteredResidents.map(r => (
 						<ResidentRow key={r._id}>
@@ -311,34 +383,36 @@ export const ResidentsInfoListBox: React.FC<ResidentsInfoListBoxProps> = ({
 										/>
 									</Td>
 									<Td>
-										<EditInput
-											value={editData.garage || ""}
+										<CheckBox
+											checked={editData.garage?.trim().toUpperCase() === "TAK"}
 											onChange={e =>
 												setEditData(prev => ({
 													...prev,
-													garage: e.target.value,
+													garage: e.target.checked ? "TAK" : "NIE",
 												}))
 											}
 										/>
 									</Td>
 									<Td>
-										<EditInput
-											value={editData.storage || ""}
+										<CheckBox
+											checked={editData.storage?.trim().toUpperCase() === "TAK"}
 											onChange={e =>
 												setEditData(prev => ({
 													...prev,
-													storage: e.target.value,
+													storage: e.target.checked ? "TAK" : "NIE",
 												}))
 											}
 										/>
 									</Td>
 									<Td>
-										<EditInput
-											value={editData.appConsent || ""}
+										<CheckBox
+											checked={
+												editData.appConsent?.trim().toUpperCase() === "TAK"
+											}
 											onChange={e =>
 												setEditData(prev => ({
 													...prev,
-													appConsent: e.target.value,
+													appConsent: e.target.checked ? "TAK" : "NIE",
 												}))
 											}
 										/>
@@ -355,16 +429,37 @@ export const ResidentsInfoListBox: React.FC<ResidentsInfoListBoxProps> = ({
 							) : (
 								<>
 									<Td>m.{r.flatNumber}</Td>
-									<Td>{r.name}</Td>
-									<Td email>{r.email}</Td>
-									<Td phone>{r.phone}</Td>
+									<Td>{renderMultiLine(r.name)}</Td>
+									<Td email>{renderMultiLine(r.email)}</Td>
+									<Td phone>{renderMultiLine(r.phone)}</Td>
 									<Td>
-										{r.area}
-										{typeof r.area === "number" ? " m²" : ""}
+										{r.area !== undefined && r.area !== null
+											? renderMultiLine(
+													typeof r.area === "number" ? `${r.area} m²` : r.area
+											  )
+											: null}
 									</Td>
-									<Td>{r.garage}</Td>
-									<Td>{r.storage}</Td>
-									<Td>{r.appConsent}</Td>
+									<Td>
+										<CheckBox
+											checked={r.garage?.trim().toUpperCase() === "TAK"}
+											readOnly
+											tabIndex={-1}
+										/>
+									</Td>
+									<Td>
+										<CheckBox
+											checked={r.storage?.trim().toUpperCase() === "TAK"}
+											readOnly
+											tabIndex={-1}
+										/>
+									</Td>
+									<Td>
+										<CheckBox
+											checked={r.appConsent?.trim().toUpperCase() === "TAK"}
+											readOnly
+											tabIndex={-1}
+										/>
+									</Td>
 									<Actions>
 										<EditButton
 											onClick={() => {

@@ -1,13 +1,46 @@
 // src/components/residentsDocumentsEstate/DocumentListBox.tsx
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import styled from "styled-components";
 import { useMain } from "@/context/EstateContext";
 import { useDocForResidents } from "@/context/DocForResidentsContext";
-import AddEstateDocumentModal from "@/components/modal/AddEstateDocumentModal";
-import AddResidentDocumentModal from "@/components/modal/AddResidentDocumentModal";
+import AddEstateDocumentModal from "../modal/AddEstateDocumentModal";
+import AddResidentDocumentModal from "../modal/AddResidentDocumentModal";
+import AddIndividualDocumentModal from "../modal/AddIndividualDocumentModal";
 import { useAnnouncement } from "@/context/AnnouncementContext";
+import { useToastContext } from "@/components/toast/ToastContext";
+import {
+	FiPlus,
+	FiSearch,
+	FiFilter,
+	FiChevronDown,
+	FiAlignLeft,
+} from "react-icons/fi";
+
+// Funkcja pomocnicza do określania ikony na podstawie typu MIME
+const getDocumentIcon = (mimetype: string): string => {
+	const mimeType = mimetype.toLowerCase();
+	
+	if (mimeType.includes('pdf')) {
+		return '/assets/documentsEstate/pdf.png';
+	} else if (mimeType.includes('word') || mimeType.includes('docx') || mimeType.includes('doc')) {
+		return '/assets/documentsEstate/word.png';
+	} else if (mimeType.includes('doc')) {
+		return '/assets/documentsEstate/doc.png';
+	} else if (mimeType.includes('excel') || mimeType.includes('xlsx') || mimeType.includes('xls')) {
+		return '/assets/documentsEstate/doc.png'; // Możesz dodać ikonę Excel jeśli masz
+	} else if (mimeType.includes('powerpoint') || mimeType.includes('pptx') || mimeType.includes('ppt')) {
+		return '/assets/documentsEstate/doc.png'; // Możesz dodać ikonę PowerPoint jeśli masz
+	} else {
+		// Domyślna ikona dla innych typów plików
+		return '/assets/documentsEstate/doc.png';
+	}
+};
+
+// Typy dla wyszukiwarki
+export type DocumentFilterStatus = "all" | "pdf" | "word" | "excel" | "other";
+export type DocumentSortValue = "name_az" | "name_za" | "date_new" | "date_old" | "size_big" | "size_small";
 
 // ---------- STYLES ----------
 const Container = styled.div`
@@ -77,67 +110,101 @@ const TabButton = styled.div<{ active?: boolean }>`
 	transition: background 0.18s;
 `;
 
-const ControlsBar = styled.div`
+// Nowe style dla wyszukiwarki
+const SearchContainer = styled.div`
+	width: 100%;
 	display: flex;
+	align-items: center;
 	gap: 18px;
 	margin-top: 22px;
 `;
-const ButtonYellow = styled.button`
+
+const AddButton = styled.button`
+	height: 40px;
+	padding: 0 20px;
+	background: #ffd100;
+	border: none;
+	border-radius: 30px;
 	display: flex;
 	align-items: center;
-	gap: 8px;
-	height: 40px;
-	background: #ffd100;
-	box-shadow: 1px 1px 10px rgba(0, 0, 0, 0.02);
-	border-radius: 30px;
-	padding: 0 22px;
-	border: none;
+	gap: 4px;
 	font-family: Roboto, sans-serif;
 	font-size: 12px;
-	color: #202020;
 	font-weight: 400;
 	letter-spacing: 0.6px;
 	cursor: pointer;
+	box-shadow: 1px 1px 10px rgba(0, 0, 0, 0.02);
 `;
 
-const InputWrapper = styled.div`
+const SearchWrapper = styled.div`
+	flex: 1 1 0;
+	height: 40px;
+	padding: 0 20px;
+	background: #ffffff;
+	border-radius: 30px;
 	display: flex;
 	align-items: center;
-	height: 40px;
-	width: 400px;
-	background: #fff;
-	border-radius: 30px;
+	gap: 4px;
 	box-shadow: 1px 1px 10px rgba(0, 0, 0, 0.02);
-	border: 0.5px solid #d9d9d9;
-	padding: 0 20px;
-	gap: 10px;
 `;
-const Input = styled.input`
+
+const SearchInput = styled.input`
+	flex: 1 1 0;
 	border: none;
 	outline: none;
-	font-size: 12px;
-	color: #202020;
-	background: transparent;
 	font-family: Roboto, sans-serif;
-	width: 100%;
+	font-size: 14px;
+	color: #202020;
+	&::placeholder {
+		color: #9d9d9d;
+	}
 `;
 
-const GrayButton = styled.button`
+const Dropdown = styled.div`
+	position: relative;
+	display: inline-block;
+`;
+
+const DropButton = styled.button<{ $active?: boolean }>`
 	display: flex;
 	align-items: center;
-	gap: 7px;
-	height: 40px;
-	background: #f3f3f3;
-	border-radius: 30px;
+	gap: 6px;
+	background: #fff;
 	border: none;
-	font-family: Roboto, sans-serif;
+	border-radius: 30px;
+	padding: 8px 20px;
 	font-size: 12px;
-	color: #9d9d9d;
-	font-weight: 400;
-	letter-spacing: 0.6px;
-	padding: 0 23px;
-	cursor: pointer;
+	color: #202020;
+	font-family: Roboto, sans-serif;
 	box-shadow: 1px 1px 10px rgba(0, 0, 0, 0.02);
+	cursor: pointer;
+	outline: ${({ $active }) => ($active ? "2px solid #FFD100" : "none")};
+	margin-right: 8px;
+`;
+
+const DropList = styled.ul`
+	position: absolute;
+	left: 0;
+	top: 110%;
+	min-width: 150px;
+	background: #fff;
+	border-radius: 10px;
+	box-shadow: 0 8px 32px rgba(30, 30, 30, 0.16);
+	list-style: none;
+	padding: 6px 0;
+	margin: 0;
+	z-index: 10000;
+`;
+
+const DropItem = styled.li<{ $selected?: boolean }>`
+	padding: 8px 18px;
+	font-size: 13px;
+	cursor: pointer;
+	color: #232323;
+	background: ${({ $selected }) => ($selected ? "#f0f0f0" : "transparent")};
+	&:hover {
+		background: #f0f0f0;
+	}
 `;
 
 const TableWrapper = styled.div`
@@ -210,21 +277,87 @@ const EditButton = styled.button`
 	margin-left: 8px;
 `;
 
+// Opcje filtrowania i sortowania
+const FILTER_OPTIONS: { value: DocumentFilterStatus; label: string }[] = [
+	{ value: "all", label: "Wszystkie typy" },
+	{ value: "pdf", label: "PDF" },
+	{ value: "word", label: "Word" },
+	{ value: "excel", label: "Excel" },
+	{ value: "other", label: "Inne" },
+];
+
+const SORT_OPTIONS: { value: DocumentSortValue; label: string }[] = [
+	{ value: "name_az", label: "Nazwa A-Z" },
+	{ value: "name_za", label: "Nazwa Z-A" },
+	{ value: "date_new", label: "Data (najnowsze)" },
+	{ value: "date_old", label: "Data (najstarsze)" },
+	{ value: "size_big", label: "Rozmiar (największe)" },
+	{ value: "size_small", label: "Rozmiar (najmniejsze)" },
+];
+
 // ---------- LOGIC ----------
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
 type Resident = { _id: string; flatNumber: string; name: string };
 
 export default function DocumentListBox() {
-	const { estateDocuments, loading, fetchEstateDocuments, deleteDocument } =
+	const { estateDocuments, loading, fetchEstateDocuments, deleteDocument, downloadDocument } =
 		useDocForResidents();
 	const { selectedEstateId } = useMain();
 	const { residents, fetchResidents } = useAnnouncement();
+	const { showToast } = useToastContext();
 
 	const [activeTab, setActiveTab] = useState(0);
-	const [search, setSearch] = useState("");
+	const [searchValue, setSearchValue] = useState("");
+	const [filterStatus, setFilterStatus] = useState<DocumentFilterStatus>("all");
+	const [sortAZ, setSortAZ] = useState<DocumentSortValue>("name_az");
 	const [showEstateModal, setShowEstateModal] = useState(false);
 	const [showResidentModal, setShowResidentModal] = useState(false);
+	const [showIndividualModal, setShowIndividualModal] = useState(false);
+
+	// Refs dla dropdownów
+	const filterRef = useRef<HTMLDivElement>(null);
+	const sortRef = useRef<HTMLDivElement>(null);
+	const [showFilter, setShowFilter] = useState(false);
+	const [showSort, setShowSort] = useState(false);
+
+	// Funkcja do obsługi pobierania dokumentów
+	const handleDownloadDocument = async (id: string, title: string) => {
+		try {
+			await downloadDocument(id);
+			showToast({
+				type: "success",
+				message: `Pobrano dokument: ${title}`
+			});
+		} catch (error) {
+			showToast({
+				type: "error",
+				message: "Błąd podczas pobierania dokumentu"
+			});
+		}
+	};
+
+	// Funkcja do obsługi pomyślnego przesłania dokumentów
+	const handleUploadSuccess = () => {
+		showToast({
+			type: "success",
+			message: "Dokumenty przesłane"
+		});
+	};
+
+	// Obsługa kliknięcia poza dropdownem (zamykanie)
+	useEffect(() => {
+		const handleClick = (e: MouseEvent) => {
+			if (filterRef.current && !filterRef.current.contains(e.target as Node)) {
+				setShowFilter(false);
+			}
+			if (sortRef.current && !sortRef.current.contains(e.target as Node)) {
+				setShowSort(false);
+			}
+		};
+		document.addEventListener("mousedown", handleClick);
+		return () => document.removeEventListener("mousedown", handleClick);
+	}, []);
 
 	// ładowanie danych
 	useEffect(() => {
@@ -237,25 +370,67 @@ export default function DocumentListBox() {
 		}
 	}, [activeTab, selectedEstateId]);
 
+	// Funkcja do filtrowania dokumentów
+	const filterDocuments = (docs: any[]) => {
+		return docs.filter(doc => {
+			// Filtrowanie po typie pliku
+			if (filterStatus !== "all") {
+				const mimeType = doc.mimetype.toLowerCase();
+				if (filterStatus === "pdf" && !mimeType.includes('pdf')) return false;
+				if (filterStatus === "word" && !mimeType.includes('word') && !mimeType.includes('docx') && !mimeType.includes('doc')) return false;
+				if (filterStatus === "excel" && !mimeType.includes('excel') && !mimeType.includes('xlsx') && !mimeType.includes('xls')) return false;
+				if (filterStatus === "other" && (mimeType.includes('pdf') || mimeType.includes('word') || mimeType.includes('docx') || mimeType.includes('doc') || mimeType.includes('excel') || mimeType.includes('xlsx') || mimeType.includes('xls'))) return false;
+			}
+
+			// Filtrowanie po wyszukiwaniu
+			if (searchValue.trim()) {
+				const searchLower = searchValue.toLowerCase();
+				return doc.title.toLowerCase().includes(searchLower) ||
+					   doc.originalName.toLowerCase().includes(searchLower);
+			}
+
+			return true;
+		});
+	};
+
+	// Funkcja do sortowania dokumentów
+	const sortDocuments = (docs: any[]) => {
+		return [...docs].sort((a, b) => {
+			switch (sortAZ) {
+				case "name_az":
+					return a.title.localeCompare(b.title);
+				case "name_za":
+					return b.title.localeCompare(a.title);
+				case "date_new":
+					return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
+				case "date_old":
+					return new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime();
+				case "size_big":
+					return (b.size || 0) - (a.size || 0);
+				case "size_small":
+					return (a.size || 0) - (b.size || 0);
+				default:
+					return 0;
+			}
+		});
+	};
+
 	// filtrowanie:
 	// - estate docs: brak pola resident
-	// - resident docs: posiadają resident
-	const filteredEstateDocs = (estateDocuments || [])
-		.filter(doc => !doc.resident)
-		.filter(doc =>
-			search.trim()
-				? doc.title.toLowerCase().includes(search.toLowerCase()) ||
-				  doc.originalName.toLowerCase().includes(search.toLowerCase())
-				: true
-		);
-	const filteredResidentDocs = (estateDocuments || [])
-		.filter(doc => !!doc.resident)
-		.filter(doc =>
-			search.trim()
-				? doc.title.toLowerCase().includes(search.toLowerCase()) ||
-				  doc.originalName.toLowerCase().includes(search.toLowerCase())
-				: true
-		);
+	// - resident docs: posiadają resident (dokumenty zbiorcze - ten sam dokument dla wielu mieszkańców)
+	// - individual docs: posiadają resident (dokumenty indywidualne - różne dokumenty dla różnych mieszkańców)
+	const filteredEstateDocs = sortDocuments(filterDocuments((estateDocuments || [])
+		.filter(doc => !doc.resident)));
+	
+	// Dokumenty zbiorcze - ten sam dokument przypisany do wielu mieszkańców
+	const filteredResidentDocs = sortDocuments(filterDocuments((estateDocuments || [])
+		.filter(doc => !!doc.resident)));
+	
+	// Dokumenty indywidualne - różne dokumenty dla różnych mieszkańców
+	// (obecnie używamy tego samego filtru co dla dokumentów zbiorczych, 
+	// ale w przyszłości możemy dodać logikę rozróżniającą)
+	const filteredIndividualDocs = sortDocuments(filterDocuments((estateDocuments || [])
+		.filter(doc => !!doc.resident)));
 
 	const handleDeleteEstateDoc = async (id: string) => {
 		if (!selectedEstateId) return;
@@ -295,57 +470,98 @@ export default function DocumentListBox() {
 							height={15}
 							alt=''
 						/>
-						Dokumenty zbiorcze i indywidualne
+						Dokumenty zbiorcze
+					</TabButton>
+					<TabButton active={activeTab === 2} onClick={() => setActiveTab(2)}>
+						<img
+							src='/assets/documentsEstate/folder.png'
+							width={15}
+							height={15}
+							alt=''
+						/>
+						Dokumenty indywidualne
 					</TabButton>
 				</TabsWrapper>
 
-				<ControlsBar>
-					<ButtonYellow
+				<SearchContainer>
+					{/* Przycisk dodawania */}
+					<AddButton
 						onClick={() =>
 							activeTab === 0
 								? setShowEstateModal(true)
-								: setShowResidentModal(true)
+								: activeTab === 1
+								? setShowResidentModal(true)
+								: setShowIndividualModal(true)
 						}>
-						<img
-							src='/assets/documentsEstate/plus.png'
-							width={15}
-							height={15}
-							alt=''
-						/>{" "}
-						Dodaj dokument
-					</ButtonYellow>
-					<InputWrapper>
-						<img
-							src='/assets/documentsEstate/search.png'
-							width={15}
-							height={15}
-							alt=''
-						/>
-						<Input
+						<FiPlus size={15} />
+						<span>Dodaj dokument</span>
+					</AddButton>
+
+					{/* Wyszukiwanie */}
+					<SearchWrapper>
+						<FiSearch size={15} color='#9d9d9d' />
+						<SearchInput
+							value={searchValue}
+							onChange={(e) => setSearchValue(e.target.value)}
 							placeholder='Wyszukaj dokument'
-							value={search}
-							onChange={e => setSearch(e.target.value)}
 						/>
-					</InputWrapper>
-					<GrayButton>
-						<img
-							src='/assets/documentsEstate/filter.png'
-							width={20}
-							height={20}
-							alt=''
-						/>{" "}
-						Filtrowanie
-					</GrayButton>
-					<GrayButton>
-						<img
-							src='/assets/advancePayment/filter.png'
-							width={20}
-							height={20}
-							alt=''
-						/>{" "}
-						Sortowanie
-					</GrayButton>
-				</ControlsBar>
+					</SearchWrapper>
+
+					{/* Filtrowanie z dropdownem */}
+					<Dropdown ref={filterRef}>
+						<DropButton
+							$active={showFilter}
+							type='button'
+							onClick={() => setShowFilter(v => !v)}>
+							<FiFilter size={18} />
+							Filtrowanie:{" "}
+							{FILTER_OPTIONS.find(opt => opt.value === filterStatus)?.label}
+							<FiChevronDown size={16} />
+						</DropButton>
+						{showFilter && (
+							<DropList>
+								{FILTER_OPTIONS.map(opt => (
+									<DropItem
+										key={opt.value}
+										$selected={opt.value === filterStatus}
+										onClick={() => {
+											setFilterStatus(opt.value);
+											setShowFilter(false);
+										}}>
+										{opt.label}
+									</DropItem>
+								))}
+							</DropList>
+						)}
+					</Dropdown>
+
+					{/* Sortowanie z dropdownem */}
+					<Dropdown ref={sortRef}>
+						<DropButton
+							$active={showSort}
+							type='button'
+							onClick={() => setShowSort(v => !v)}>
+							<FiAlignLeft size={17} />
+							Sortowanie: {SORT_OPTIONS.find(opt => opt.value === sortAZ)?.label}
+							<FiChevronDown size={16} />
+						</DropButton>
+						{showSort && (
+							<DropList>
+								{SORT_OPTIONS.map(opt => (
+									<DropItem
+										key={opt.value}
+										$selected={opt.value === sortAZ}
+										onClick={() => {
+											setSortAZ(opt.value);
+											setShowSort(false);
+										}}>
+										{opt.label}
+									</DropItem>
+								))}
+							</DropList>
+						)}
+					</Dropdown>
+				</SearchContainer>
 
 				<TableWrapper>
 					{activeTab === 0 ? (
@@ -355,6 +571,7 @@ export default function DocumentListBox() {
 								<Th>Nazwa</Th>
 								<Th>Typ</Th>
 								<Th>Oryginalna nazwa</Th>
+								<Th>Rozmiar</Th>
 								<Th>Data</Th>
 								<Th style={{ width: 180, flex: "none" }} />
 							</TableHeader>
@@ -374,34 +591,33 @@ export default function DocumentListBox() {
 								filteredEstateDocs.map(doc => (
 									<TableRow key={doc._id}>
 										<Td style={{ maxWidth: 35, cursor: "pointer" }}>
-											<a
-												href={`${API_URL}/documents/${doc._id}/download`}
-												target='_blank'
-												rel='noreferrer'>
+											<div onClick={() => handleDownloadDocument(doc._id, doc.title)}>
 												<img
-													src='/assets/documentsEstate/pdf.png'
+													src={getDocumentIcon(doc.mimetype)}
 													width={25}
 													height={25}
-													alt='pdf'
+													alt={doc.mimetype.replace("application/", "").toUpperCase()}
 												/>
-											</a>
+											</div>
 										</Td>
 										<Td>
-											<a
-												href={`${API_URL}/documents/${doc._id}/download`}
-												target='_blank'
-												rel='noreferrer'
+											<div
+												onClick={() => handleDownloadDocument(doc._id, doc.title)}
 												style={{
 													color: "#4D4D4D",
 													textDecoration: "underline",
+													cursor: "pointer",
 												}}>
 												{doc.title}
-											</a>
+											</div>
 										</Td>
 										<Td>
 											{doc.mimetype.replace("application/", "").toUpperCase()}
 										</Td>
 										<Td>{doc.originalName}</Td>
+										<Td>
+											{Math.round((doc.size || 0) / 1024)} KB
+										</Td>
 										<Td>
 											{doc.createdAt
 												? new Date(doc.createdAt).toLocaleDateString("pl-PL")
@@ -423,7 +639,7 @@ export default function DocumentListBox() {
 								))
 							)}
 						</Table>
-					) : (
+					) : activeTab === 1 ? (
 						<Table>
 							<TableHeader>
 								<Th style={{ maxWidth: 35 }} />
@@ -431,6 +647,7 @@ export default function DocumentListBox() {
 								<Th>Typ</Th>
 								<Th>Oryginalna nazwa</Th>
 								<Th>Przypisany do</Th>
+								<Th>Rozmiar</Th>
 								<Th>Data</Th>
 								<Th style={{ width: 180, flex: "none" }} />
 							</TableHeader>
@@ -452,35 +669,114 @@ export default function DocumentListBox() {
 									return (
 										<TableRow key={doc._id}>
 											<Td style={{ maxWidth: 35, cursor: "pointer" }}>
-												<a
-													href={`${API_URL}/documents/${doc._id}/download`}
-													target='_blank'
-													rel='noreferrer'>
+												<div onClick={() => handleDownloadDocument(doc._id, doc.title)}>
 													<img
-														src='/assets/documentsEstate/pdf.png'
+														src={getDocumentIcon(doc.mimetype)}
 														width={25}
 														height={25}
-														alt='pdf'
+														alt={doc.mimetype.replace("application/", "").toUpperCase()}
 													/>
-												</a>
+												</div>
 											</Td>
 											<Td>
-												<a
-													href={`${API_URL}/documents/${doc._id}/download`}
-													target='_blank'
-													rel='noreferrer'
+												<div
+													onClick={() => handleDownloadDocument(doc._id, doc.title)}
 													style={{
 														color: "#4D4D4D",
 														textDecoration: "underline",
+														cursor: "pointer",
 													}}>
 													{doc.title}
-												</a>
+												</div>
 											</Td>
 											<Td>
 												{doc.mimetype.replace("application/", "").toUpperCase()}
 											</Td>
 											<Td>{doc.originalName}</Td>
 											<Td>{res ? `m.${res.flatNumber} – ${res.name}` : "-"}</Td>
+											<Td>
+												{Math.round((doc.size || 0) / 1024)} KB
+											</Td>
+											<Td>
+												{doc.createdAt
+													? new Date(doc.createdAt).toLocaleDateString("pl-PL")
+													: ""}
+											</Td>
+											<Td
+												style={{
+													display: "flex",
+													gap: 10,
+													justifyContent: "flex-end",
+												}}>
+												<EditButton
+													style={{ background: "#E8AE9E" }}
+													onClick={() => handleDeleteResidentDoc(doc._id)}>
+													Usuń dokument
+												</EditButton>
+											</Td>
+										</TableRow>
+									);
+								})
+							)}
+						</Table>
+					) : (
+						<Table>
+							<TableHeader>
+								<Th style={{ maxWidth: 35 }} />
+								<Th>Nazwa</Th>
+								<Th>Typ</Th>
+								<Th>Oryginalna nazwa</Th>
+								<Th>Przypisany do</Th>
+								<Th>Rozmiar</Th>
+								<Th>Data</Th>
+								<Th style={{ width: 180, flex: "none" }} />
+							</TableHeader>
+							{loading ? (
+								<TableRow>
+									<Td style={{ textAlign: "center", width: "100%" }}>
+										Ładowanie…
+									</Td>
+								</TableRow>
+							) : filteredIndividualDocs.length === 0 ? (
+								<TableRow>
+									<Td style={{ textAlign: "center", width: "100%" }}>
+										Brak dokumentów indywidualnych.
+									</Td>
+								</TableRow>
+							) : (
+								filteredIndividualDocs.map(doc => {
+									const res = residents.find(r => r._id === doc.resident);
+									return (
+										<TableRow key={doc._id}>
+											<Td style={{ maxWidth: 35, cursor: "pointer" }}>
+												<div onClick={() => handleDownloadDocument(doc._id, doc.title)}>
+													<img
+														src={getDocumentIcon(doc.mimetype)}
+														width={25}
+														height={25}
+														alt={doc.mimetype.replace("application/", "").toUpperCase()}
+													/>
+												</div>
+											</Td>
+											<Td>
+												<div
+													onClick={() => handleDownloadDocument(doc._id, doc.title)}
+													style={{
+														color: "#4D4D4D",
+														textDecoration: "underline",
+														cursor: "pointer",
+													}}>
+													{doc.title}
+												</div>
+											</Td>
+											<Td>
+												{doc.mimetype.replace("application/", "").toUpperCase()}
+											</Td>
+											<Td>{doc.originalName}</Td>
+											<Td>{res ? `m.${res.flatNumber} – ${res.name}` : "-"}</Td>
+											<Td>
+												{Math.round((doc.size || 0) / 1024)} KB
+											</Td>
 											<Td>
 												{doc.createdAt
 													? new Date(doc.createdAt).toLocaleDateString("pl-PL")
@@ -517,6 +813,7 @@ export default function DocumentListBox() {
 						onSuccess={() => {
 							setShowEstateModal(false);
 							fetchEstateDocuments(selectedEstateId);
+							handleUploadSuccess();
 						}}
 					/>
 				)}
@@ -530,6 +827,25 @@ export default function DocumentListBox() {
 						onSuccess={() => {
 							setShowResidentModal(false);
 							fetchEstateDocuments(selectedEstateId);
+							handleUploadSuccess();
+						}}
+						estateId={selectedEstateId}
+						residents={residents}
+						residentsLoading={false}
+						residentsError={null}
+					/>
+				)}
+				{showIndividualModal && selectedEstateId && (
+					<AddIndividualDocumentModal
+						open={showIndividualModal}
+						onClose={() => {
+							setShowIndividualModal(false);
+							fetchEstateDocuments(selectedEstateId);
+						}}
+						onSuccess={() => {
+							setShowIndividualModal(false);
+							fetchEstateDocuments(selectedEstateId);
+							handleUploadSuccess();
 						}}
 						estateId={selectedEstateId}
 						residents={residents}

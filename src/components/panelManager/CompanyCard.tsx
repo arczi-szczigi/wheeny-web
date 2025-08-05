@@ -6,15 +6,15 @@ const StyledCard = styled.div<{ selected?: boolean }>`
 	background: #fefefe;
 	box-shadow: 1px 1px 10px rgba(0, 0, 0, 0.02);
 	border-radius: 10px;
-	margin: 0 auto 26px auto;
+	margin: 0 auto 26px;
 	padding: 0;
 	display: flex;
 	flex-direction: column;
 	border: 1.5px solid transparent;
 	transition: border-color 0.17s;
 
-	${props =>
-		props.selected &&
+	${({ selected }) =>
+		selected &&
 		css`
 			border-color: #ffd100;
 			box-shadow: 0 0 0 2px #ffe555;
@@ -25,7 +25,7 @@ const TopRow = styled.div`
 	display: flex;
 	justify-content: space-between;
 	align-items: flex-start;
-	padding: 23px 44px 0px 44px;
+	padding: 23px 44px 0 44px;
 `;
 
 const Title = styled.div`
@@ -71,16 +71,13 @@ const Button = styled.button<{
 
 const Divider = styled.div`
 	width: 1318px;
-	height: 0;
 	margin: 9px 0 0 41px;
 	border-bottom: 1px solid #f3f3f3;
 `;
 
 const MainRow = styled.div`
 	display: flex;
-	flex-direction: row;
-	align-items: flex-start;
-	padding: 14px 44px 0px 44px;
+	padding: 14px 44px 0 44px;
 	gap: 18px;
 `;
 
@@ -93,10 +90,10 @@ const OfficeIcon = styled.img`
 `;
 
 const InfoSection = styled.div`
+	flex: 1;
 	display: flex;
 	flex-direction: column;
 	justify-content: center;
-	width: 100%;
 `;
 
 const OrgName = styled.div`
@@ -111,13 +108,13 @@ const OrgName = styled.div`
 
 const SecondRow = styled.div`
 	display: flex;
-	align-items: center;
 	justify-content: space-between;
+	align-items: center;
 	min-height: 30px;
-	width: 100%;
 `;
 
 const OrgAddress = styled.div`
+	flex: 1;
 	color: #202020;
 	font-size: 16px;
 	font-family: Roboto, sans-serif;
@@ -126,7 +123,6 @@ const OrgAddress = styled.div`
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
-	flex: 1;
 	margin-right: 60px;
 `;
 
@@ -138,8 +134,8 @@ const StatBar = styled.div`
 
 const Tag = styled.div`
 	background: #f3f3f3;
-	border-radius: 1px;
 	padding: 6px 17px;
+	border-radius: 1px;
 	font-size: 12px;
 	font-family: Roboto, sans-serif;
 	font-weight: 700;
@@ -162,7 +158,6 @@ const Stat = styled.div`
 	height: 30px;
 	display: flex;
 	align-items: center;
-	justify-content: flex-start;
 	padding: 0 18px;
 	font-size: 12px;
 	font-family: Roboto, sans-serif;
@@ -189,66 +184,68 @@ export type CardOrganizationProps = {
 	};
 	onSelect?: () => void;
 	isSelected?: boolean;
+	onDeleteClick?: () => void;
+	onEditClick?: () => void; // <-- dopisane
 };
 
 export const CardOrganization: React.FC<CardOrganizationProps> = ({
 	org,
 	onSelect,
 	isSelected,
-}) => {
-	return (
-		<StyledCard selected={isSelected}>
-			<TopRow>
-				<Title>{org.name}</Title>
-				<ButtonsRow>
-					<Button
-						bg='#FFD100'
-						color='#202020'
-						onClick={isSelected ? undefined : onSelect}
-						selected={isSelected}
-						disabled={isSelected}>
-						{isSelected ? "Wybrana" : "Wybierz firmę"}
-					</Button>
-					<Button bg='#4D4D4D' color='#fff'>
-						Edytuj dane
-					</Button>
-					<Button bg='#E1F1FF' color='#202020'>
-						Weryfikacja
-					</Button>
-					<Button bg='#98C580' color='#202020'>
-						Pakiet
-					</Button>
-					<Button bg='#E8AE9E' color='#202020'>
-						Usuń firmę
-					</Button>
-				</ButtonsRow>
-			</TopRow>
-			<Divider />
-			<MainRow>
-				<OfficeIcon
-					src='/assets/panelOrganisation/building.png'
-					alt='ikona biura'
-				/>
-				<InfoSection>
-					<OrgName>{org.name}</OrgName>
-					<SecondRow>
-						<OrgAddress>{org.address}</OrgAddress>
-						<StatBar>
-							<Tag>Podstawowe</Tag>
-							<TagSecondary>Konto</TagSecondary>
-							<Stat>
-								<StatValue>{org.registrationDate}</StatValue> Data rejestracji
-							</Stat>
-							<Stat>
-								<StatValue>{org.estatesCount}</StatValue> Osiedla
-							</Stat>
-							<Stat>
-								<StatValue>{org.residentsCount}</StatValue> Mieszkańców
-							</Stat>
-						</StatBar>
-					</SecondRow>
-				</InfoSection>
-			</MainRow>
-		</StyledCard>
-	);
-};
+	onDeleteClick,
+	onEditClick, // <-- dopisane
+}) => (
+	<StyledCard selected={isSelected}>
+		<TopRow>
+			<Title>{org.name}</Title>
+			<ButtonsRow>
+				<Button
+					bg='#FFD100'
+					color='#202020'
+					selected={isSelected}
+					disabled={isSelected}
+					onClick={isSelected ? undefined : onSelect}>
+					{isSelected ? "Wybrana" : "Wybierz firmę"}
+				</Button>
+				<Button bg='#4D4D4D' color='#fff' onClick={onEditClick}>
+					Edytuj dane
+				</Button>
+				<Button bg='#E1F1FF' color='#202020'>
+					Weryfikacja
+				</Button>
+				<Button bg='#98C580' color='#202020'>
+					Pakiet
+				</Button>
+				<Button bg='#E8AE9E' color='#202020' onClick={onDeleteClick}>
+					Usuń firmę
+				</Button>
+			</ButtonsRow>
+		</TopRow>
+		<Divider />
+		<MainRow>
+			<OfficeIcon
+				src='/assets/panelOrganisation/building.png'
+				alt='ikona biura'
+			/>
+			<InfoSection>
+				<OrgName>{org.name}</OrgName>
+				<SecondRow>
+					<OrgAddress>{org.address}</OrgAddress>
+					<StatBar>
+						<Tag>Podstawowe</Tag>
+						<TagSecondary>Konto</TagSecondary>
+						<Stat>
+							<StatValue>{org.registrationDate}</StatValue>Data rejestracji
+						</Stat>
+						<Stat>
+							<StatValue>{org.estatesCount}</StatValue>Osiedla
+						</Stat>
+						<Stat>
+							<StatValue>{org.residentsCount}</StatValue>Mieszkańców
+						</Stat>
+					</StatBar>
+				</SecondRow>
+			</InfoSection>
+		</MainRow>
+	</StyledCard>
+);
