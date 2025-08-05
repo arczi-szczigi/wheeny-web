@@ -263,11 +263,17 @@ export default function EditEstateModal({
 				},
 			});
 
-			showToast("Osiedle zostało zaktualizowane", "success");
+			showToast({
+				message: "Osiedle zostało zaktualizowane",
+				type: "success"
+			});
 			onSuccess();
 		} catch (error) {
 			console.error("Błąd aktualizacji osiedla:", error);
-			showToast("Błąd podczas aktualizacji osiedla", "error");
+			showToast({
+				message: "Błąd podczas aktualizacji osiedla",
+				type: "error"
+			});
 		} finally {
 			setIsSubmitting(false);
 		}
