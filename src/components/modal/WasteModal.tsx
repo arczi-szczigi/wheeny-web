@@ -112,7 +112,7 @@ const FileItem = styled.a`
 	background: #f9f9f9;
 	border-radius: 7px;
 	font-size: 15px;
-	font-family: Roboto;
+	font-family: Roboto, sans-serif;
 	color: #0066cc;
 	text-decoration: underline;
 	border: 1px solid #f1f1f1;
@@ -334,17 +334,17 @@ export default function WasteModal({
 					</div>
 					<FileRow>
 						<label style={{ fontSize: 15, marginBottom: 5, display: "block" }}>
-							Dodaj plik informacyjny o sortowaniu (opcjonalnie, tylko Excel)
+							Dodaj plik informacyjny (opcjonalnie, PDF lub obrazek)
 						</label>
 						<FileInputWrap>
 							<AttachIcon src='/assets/trash/attach.svg' alt='attach' />
 							<span style={{ color: "#999", fontSize: 15, flex: 1 }}>
-								{file ? file.name : "Dodaj plik Excel (.xls, .xlsx)"}
+								{file ? file.name : "Dodaj plik PDF lub obrazek"}
 							</span>
 							<HiddenFileInput
 								ref={fileInputRef}
 								type='file'
-								accept='.xls,.xlsx'
+								accept='application/pdf,image/*'
 								onChange={handleFileChange}
 							/>
 							<button

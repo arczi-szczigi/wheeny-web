@@ -280,6 +280,7 @@ export default function AddIndividualDocumentAutomationModal({
 	const [files, setFiles] = useState<File[]>([]);
 	const [mappedFiles, setMappedFiles] = useState<MappedFile[]>([]);
 	const [error, setError] = useState<string | null>(null);
+	const [submitting, setSubmitting] = useState(false);
 
 	// Funkcja do wyciągania numeru mieszkania z nazwy pliku
 	const extractFlatNumber = (filename: string): string | null => {
@@ -333,6 +334,7 @@ export default function AddIndividualDocumentAutomationModal({
 
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
+		if (submitting) return;
 		
 		const validFiles = mappedFiles.filter(item => item.resident && !item.error);
 		if (validFiles.length === 0) {
@@ -341,6 +343,11 @@ export default function AddIndividualDocumentAutomationModal({
 		}
 
 		setError(null);
+		setSubmitting(true);
+		
+		// Generuj unikalne batchId dla tej paczki
+		const batchId = `batch-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+		
 		try {
 			for (const item of validFiles) {
 				if (item.resident) {
@@ -349,6 +356,7 @@ export default function AddIndividualDocumentAutomationModal({
 						estateId: estateId!,
 						title: item.title,
 						residentId: item.resident._id,
+						batchId,
 					});
 				}
 			}
@@ -360,6 +368,8 @@ export default function AddIndividualDocumentAutomationModal({
 			onClose();
 		} catch (e: any) {
 			setError(e.message);
+		} finally {
+			setSubmitting(false);
 		}
 	};
 
@@ -460,11 +470,11 @@ export default function AddIndividualDocumentAutomationModal({
 					{error && <ErrorMessage>{error}</ErrorMessage>}
 
 					<Footer>
-						<Button type='button' variant='cancel' onClick={onClose}>
+						<Button type='button' variant='cancel' onClick={onClose} disabled={submitting}>
 							Anuluj
 						</Button>
-						<Button type='submit' variant='confirm'>
-							Potwierdź i wyślij
+						<Button type='submit' variant='confirm' disabled={submitting}>
+							{submitting ? "Wysyłanie..." : "Potwierdź i wyślij"}
 						</Button>
 					</Footer>
 				</form>

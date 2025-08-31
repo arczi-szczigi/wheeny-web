@@ -2,6 +2,7 @@
 import React, { useState } from "react";
 import styled from "styled-components";
 import { useMain } from "@/context/EstateContext";
+import { useToastContext } from "@/components/toast/ToastContext";
 
 const Overlay = styled.div`
 	position: fixed;
@@ -46,7 +47,7 @@ const IconCircle = styled.div`
 const ModalTitle = styled.div`
 	color: #202020;
 	font-size: 16px;
-	font-family: Roboto;
+	font-family: Roboto, sans-serif;
 	font-weight: 500;
 	letter-spacing: 0.8px;
 `;
@@ -54,7 +55,7 @@ const ModalTitle = styled.div`
 const ModalStep = styled.div`
 	color: #4d4d4d;
 	font-size: 16px;
-	font-family: Roboto;
+	font-family: Roboto, sans-serif;
 	font-weight: 500;
 	letter-spacing: 0.8px;
 	margin-left: 8px;
@@ -63,7 +64,7 @@ const ModalStep = styled.div`
 const ModalSubtitle = styled.div`
 	color: #9d9d9d;
 	font-size: 14px;
-	font-family: Roboto;
+	font-family: Roboto, sans-serif;
 	font-weight: 300;
 	letter-spacing: 0.7px;
 	margin-top: 10px;
@@ -85,7 +86,7 @@ const FieldGroup = styled.div`
 const Label = styled.label`
 	color: #4d4d4d;
 	font-size: 14px;
-	font-family: Roboto;
+	font-family: Roboto, sans-serif;
 	font-weight: 400;
 	letter-spacing: 0.7px;
 `;
@@ -100,7 +101,7 @@ const Input = styled.input`
 	padding: 0 18px;
 	color: #202020;
 	font-size: 14px;
-	font-family: Roboto;
+	font-family: Roboto, sans-serif;
 	font-weight: 400;
 	letter-spacing: 0.7px;
 	&::placeholder {
@@ -141,7 +142,7 @@ const CancelBtn = styled.button`
 	background: #d9d9d9;
 	color: #202020;
 	font-size: 10px;
-	font-family: Roboto;
+	font-family: Roboto, sans-serif;
 	font-weight: 600;
 	border-radius: 30px;
 	border: none;
@@ -155,7 +156,7 @@ const ActionBtn = styled.button`
 	background: #ffd100;
 	color: #202020;
 	font-size: 10px;
-	font-family: Roboto;
+	font-family: Roboto, sans-serif;
 	font-weight: 600;
 	border-radius: 30px;
 	border: none;
@@ -175,6 +176,7 @@ export default function AddEstateDocumentModal({
 	onSuccess?: () => void;
 }) {
 	const { selectedEstateId, reload } = useMain();
+	const { showToast } = useToastContext();
 
 	const [title, setTitle] = useState("");
 	const [file, setFile] = useState<File | null>(null);
@@ -220,8 +222,10 @@ export default function AddEstateDocumentModal({
 			reload();
 			onSuccess && onSuccess();
 			onClose();
+			showToast({ type: "success", message: "Dokument dodany." });
 		} catch (e: any) {
 			setError(e.message || "Błąd serwera");
+			showToast({ type: "error", message: e?.message || "Błąd przesyłania dokumentu" });
 		} finally {
 			setLoading(false);
 		}

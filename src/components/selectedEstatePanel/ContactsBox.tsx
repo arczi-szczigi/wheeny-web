@@ -26,7 +26,7 @@ const HeaderRow = styled.div`
 `;
 
 const Header = styled.h2`
-	font-family: Roboto;
+	font-family: Roboto, sans-serif;
 	font-size: 20px;
 	font-weight: 400;
 	color: black;
@@ -41,7 +41,7 @@ const FullListButton = styled.button`
 	border: none;
 	border-radius: 30px;
 	padding: 8px 32px;
-	font-family: Roboto;
+	font-family: Roboto, sans-serif;
 	font-size: 12px;
 	font-weight: 400;
 	letter-spacing: 0.6px;
@@ -93,7 +93,7 @@ const Info = styled.div`
 const Name = styled.div`
 	color: #4d4d4d;
 	font-size: 20px;
-	font-family: Roboto;
+	font-family: Roboto, sans-serif;
 	font-weight: 400;
 	letter-spacing: 0.8px;
 	margin-bottom: 4px;
@@ -102,7 +102,7 @@ const Name = styled.div`
 const Role = styled.div`
 	color: #4d4d4d;
 	font-size: 12px;
-	font-family: Roboto;
+	font-family: Roboto, sans-serif;
 	font-weight: 300;
 	letter-spacing: 0.5px;
 `;

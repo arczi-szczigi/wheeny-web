@@ -108,7 +108,7 @@ const DropItem = styled.li<{ $selected?: boolean }>`
 
 // --- TYPES ---
 export type FilterStatus = "all" | "withBalance" | "withoutBalance" | "overdue";
-export type SortValue = "az" | "za" | "amountAsc" | "amountDesc";
+export type SortValue = "numerical" | "numericalDesc" | "az" | "za" | "amountAsc" | "amountDesc";
 
 // --- PROPS ---
 export interface SearchBarAdvancePaymentProps {
@@ -130,6 +130,8 @@ const FILTER_OPTIONS: { value: FilterStatus; label: string }[] = [
 ];
 
 const SORT_OPTIONS: { value: SortValue; label: string }[] = [
+	{ value: "numerical", label: "1-999" },
+	{ value: "numericalDesc", label: "999-1" },
 	{ value: "az", label: "Sortuj A-Z" },
 	{ value: "za", label: "Sortuj Z-A" },
 	{ value: "amountAsc", label: "Kwota rosnąco" },
@@ -142,7 +144,7 @@ const SearchBarAdvancePayment: React.FC<SearchBarAdvancePaymentProps> = ({
 	onFilterChange,
 	onSortChange,
 	filterValue = "all",
-	sortValue = "az",
+	sortValue = "numerical",
 	placeholder = "Wyszukaj mieszkanie",
 	activeTab = 0,
 }) => {

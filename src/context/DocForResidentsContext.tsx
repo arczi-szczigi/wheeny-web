@@ -11,6 +11,7 @@ export type DocumentFile = {
 	size: number;
 	estate: string;
 	resident?: string;
+	batchId?: string;
 	createdAt?: string;
 	updatedAt?: string;
 };
@@ -44,6 +45,7 @@ type DocForResidentsContextType = {
 		estateId: string;
 		title: string;
 		residentId?: string;
+		batchId?: string;
 	}) => Promise<void>;
 	uploadEstateDocument: (data: {
 		file: File;
@@ -62,6 +64,7 @@ type DocForResidentsContextType = {
 
 	// --- Usuwanie
 	deleteDocument: (id: string, type?: "estate" | "resident") => Promise<void>;
+	deleteBatch: (batchId: string) => Promise<void>;
 
 	// --- Przypisz istniejący dokument do mieszkańca
 	assignToResident: (docId: string, residentId: string) => Promise<void>;
@@ -82,6 +85,7 @@ const DocForResidentsContext = createContext<DocForResidentsContextType>({
 	uploadResidentDocument: async () => {},
 	downloadDocument: async () => {},
 	deleteDocument: async () => {},
+	deleteBatch: async () => {},
 	assignToResident: async () => {},
 });
 
@@ -210,11 +214,13 @@ export const DocForResidentsProvider: React.FC<{
 			estateId,
 			title,
 			residentId,
+			batchId,
 		}: {
 			file: File;
 			estateId: string;
 			title: string;
 			residentId?: string;
+			batchId?: string;
 		}) => {
 			setLoading(true);
 			setError(null);
@@ -225,6 +231,7 @@ export const DocForResidentsProvider: React.FC<{
 				formData.append("estateId", estateId);
 				formData.append("title", title);
 				if (residentId) formData.append("residentId", residentId);
+				if (batchId) formData.append("batchId", batchId);
 
 				const res = await fetch(`${API_URL}/documents/upload`, {
 					method: "POST",
@@ -402,6 +409,30 @@ export const DocForResidentsProvider: React.FC<{
 	);
 
 	// =========================
+	//  USUWANIE PACZKI DOKUMENTÓW
+	// =========================
+	const deleteBatch = useCallback(
+		async (batchId: string) => {
+			setLoading(true);
+			setError(null);
+			try {
+				const token = localStorage.getItem("token");
+				const res = await fetch(`${API_URL}/documents/batch/${batchId}`, {
+					method: "DELETE",
+					headers: { Authorization: `Bearer ${token}` },
+				});
+				if (!res.ok) throw new Error("Błąd usuwania paczki dokumentów!");
+			} catch (e: any) {
+				setError(e.message || "Błąd usuwania paczki dokumentów");
+				throw e;
+			} finally {
+				setLoading(false);
+			}
+		},
+		[]
+	);
+
+	// =========================
 	//  PRZYPISANIE DOKUMENTU DO MIESZKAŃCA (assign)
 	// =========================
 	const assignToResident = useCallback(
@@ -447,6 +478,7 @@ export const DocForResidentsProvider: React.FC<{
 				uploadResidentDocument,
 				downloadDocument,
 				deleteDocument,
+				deleteBatch,
 				assignToResident,
 			}}>
 			{children}

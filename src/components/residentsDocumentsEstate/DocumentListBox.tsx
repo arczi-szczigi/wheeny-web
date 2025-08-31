@@ -277,6 +277,51 @@ const EditButton = styled.button`
 	margin-left: 8px;
 `;
 
+// Style dla grup dokumentów
+const BatchGroup = styled.div`
+	border: 2px solid #ffd100;
+	border-radius: 8px;
+	margin: 10px 0;
+	background: #fffbee;
+`;
+
+const BatchHeader = styled.div`
+	background: #ffd100;
+	padding: 8px 15px;
+	font-family: Roboto, sans-serif;
+	font-size: 12px;
+	font-weight: 600;
+	color: #202020;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+`;
+
+const BatchTitle = styled.span`
+	font-size: 11px;
+`;
+
+const BatchDeleteButton = styled.button`
+	background: #e74c3c;
+	border: none;
+	border-radius: 4px;
+	color: white;
+	font-size: 10px;
+	font-family: Roboto, sans-serif;
+	font-weight: 500;
+	padding: 4px 8px;
+	cursor: pointer;
+	transition: background 0.2s;
+
+	&:hover {
+		background: #c0392b;
+	}
+`;
+
+const BatchContent = styled.div`
+	background: white;
+`;
+
 // Opcje filtrowania i sortowania
 const FILTER_OPTIONS: { value: DocumentFilterStatus; label: string }[] = [
 	{ value: "all", label: "Wszystkie typy" },
@@ -301,7 +346,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 type Resident = { _id: string; flatNumber: string; name: string };
 
 export default function DocumentListBox() {
-	const { estateDocuments, loading, fetchEstateDocuments, deleteDocument, downloadDocument } =
+	const { estateDocuments, loading, fetchEstateDocuments, deleteDocument, deleteBatch, downloadDocument } =
 		useDocForResidents();
 	const { selectedEstateId } = useMain();
 	const { residents, fetchResidents } = useAnnouncement();
@@ -344,6 +389,88 @@ export default function DocumentListBox() {
 			message: "Dokumenty przesłane"
 		});
 	};
+
+	// Funkcja grupowania dokumentów po batchId
+	const groupDocumentsByBatch = (documents: any[]) => {
+		const batches: { [key: string]: any[] } = {};
+		const singleDocs: any[] = [];
+
+		documents.forEach(doc => {
+			if (doc.batchId) {
+				if (!batches[doc.batchId]) {
+					batches[doc.batchId] = [];
+				}
+				batches[doc.batchId].push(doc);
+			} else {
+				singleDocs.push(doc);
+			}
+		});
+
+		return { batches, singleDocs };
+	};
+
+	// Funkcja do usuwania całej paczki
+	const handleDeleteBatch = async (batchId: string) => {
+		if (!selectedEstateId) return;
+		try {
+			await deleteBatch(batchId);
+			fetchEstateDocuments(selectedEstateId);
+			showToast({ type: "success", message: "Paczka dokumentów została usunięta." });
+		} catch (err: any) {
+			showToast({ type: "error", message: err.message || "Błąd usuwania paczki dokumentów." });
+		}
+	};
+
+	// Funkcja renderowania pojedynczego dokumentu
+	const renderDocument = (doc: any) => (
+		<TableRow key={doc._id}>
+			<Td style={{ maxWidth: 35, cursor: "pointer" }}>
+				<div onClick={() => handleDownloadDocument(doc._id, doc.title)}>
+					<img
+						src={getDocumentIcon(doc.mimetype)}
+						width={25}
+						height={25}
+						alt={doc.mimetype.replace("application/", "").toUpperCase()}
+					/>
+				</div>
+			</Td>
+			<Td>
+				<div
+					onClick={() => handleDownloadDocument(doc._id, doc.title)}
+					style={{
+						color: "#4D4D4D",
+						textDecoration: "underline",
+						cursor: "pointer",
+					}}>
+					{doc.title}
+				</div>
+			</Td>
+			<Td>
+				{doc.mimetype.replace("application/", "").toUpperCase()}
+			</Td>
+			<Td>{doc.originalName}</Td>
+			<Td>
+				{Math.round((doc.size || 0) / 1024)} KB
+			</Td>
+			<Td>
+				{doc.createdAt
+					? new Date(doc.createdAt).toLocaleDateString("pl-PL")
+					: ""}
+			</Td>
+			<Td
+				style={{
+					display: "flex",
+					gap: 10,
+					justifyContent: "flex-end",
+				}}>
+				<EditButton
+					style={{ background: "#E8AE9E" }}
+					onClick={() => handleDeleteEstateDoc(doc._id)}>
+					Usuń
+				</EditButton>
+			</Td>
+		</TableRow>
+	);
 
 	// Obsługa kliknięcia poza dropdownem (zamykanie)
 	useEffect(() => {
@@ -422,6 +549,9 @@ export default function DocumentListBox() {
 	const filteredEstateDocs = sortDocuments(filterDocuments((estateDocuments || [])
 		.filter(doc => !doc.resident)));
 	
+	// Grupowanie dokumentów osiedlowych po batchId
+	const { batches: estateBatches, singleDocs: singleEstateDocs } = groupDocumentsByBatch(filteredEstateDocs);
+	
 	// Dokumenty zbiorcze - ten sam dokument przypisany do wielu mieszkańców
 	const filteredResidentDocs = sortDocuments(filterDocuments((estateDocuments || [])
 		.filter(doc => !!doc.resident)));
@@ -434,13 +564,23 @@ export default function DocumentListBox() {
 
 	const handleDeleteEstateDoc = async (id: string) => {
 		if (!selectedEstateId) return;
-		await deleteDocument(id, "estate");
-		fetchEstateDocuments(selectedEstateId);
+		try {
+			await deleteDocument(id, "estate");
+			fetchEstateDocuments(selectedEstateId);
+			showToast({ type: "success", message: "Dokument został usunięty." });
+		} catch (e: any) {
+			showToast({ type: "error", message: e?.message || "Błąd usuwania dokumentu" });
+		}
 	};
 	const handleDeleteResidentDoc = async (id: string) => {
 		if (!selectedEstateId) return;
-		await deleteDocument(id, "estate");
-		fetchEstateDocuments(selectedEstateId);
+		try {
+			await deleteDocument(id, "estate");
+			fetchEstateDocuments(selectedEstateId);
+			showToast({ type: "success", message: "Dokument został usunięty." });
+		} catch (e: any) {
+			showToast({ type: "error", message: e?.message || "Błąd usuwania dokumentu" });
+		}
 	};
 
 	return (
@@ -449,7 +589,7 @@ export default function DocumentListBox() {
 				<Header>
 					<Title>Dokumenty</Title>
 					<SubTitle>
-						Przegląd dokumentów osiedla lub wysyłaj indywidualnie zbiorcze.
+						Przegląd dokumentów osiedla lub wysyłaj zbiorczo/indywidualnie.
 					</SubTitle>
 				</Header>
 
@@ -470,7 +610,7 @@ export default function DocumentListBox() {
 							height={15}
 							alt=''
 						/>
-						Dokumenty zbiorcze
+						Dokumenty indywidualne
 					</TabButton>
 					<TabButton active={activeTab === 2} onClick={() => setActiveTab(2)}>
 						<img
@@ -479,7 +619,7 @@ export default function DocumentListBox() {
 							height={15}
 							alt=''
 						/>
-						Dokumenty indywidualne
+						Dokumenty zbiorcze
 					</TabButton>
 				</TabsWrapper>
 
@@ -588,55 +728,33 @@ export default function DocumentListBox() {
 									</Td>
 								</TableRow>
 							) : (
-								filteredEstateDocs.map(doc => (
-									<TableRow key={doc._id}>
-										<Td style={{ maxWidth: 35, cursor: "pointer" }}>
-											<div onClick={() => handleDownloadDocument(doc._id, doc.title)}>
-												<img
-													src={getDocumentIcon(doc.mimetype)}
-													width={25}
-													height={25}
-													alt={doc.mimetype.replace("application/", "").toUpperCase()}
-												/>
-											</div>
-										</Td>
-										<Td>
-											<div
-												onClick={() => handleDownloadDocument(doc._id, doc.title)}
-												style={{
-													color: "#4D4D4D",
-													textDecoration: "underline",
-													cursor: "pointer",
-												}}>
-												{doc.title}
-											</div>
-										</Td>
-										<Td>
-											{doc.mimetype.replace("application/", "").toUpperCase()}
-										</Td>
-										<Td>{doc.originalName}</Td>
-										<Td>
-											{Math.round((doc.size || 0) / 1024)} KB
-										</Td>
-										<Td>
-											{doc.createdAt
-												? new Date(doc.createdAt).toLocaleDateString("pl-PL")
-												: ""}
-										</Td>
-										<Td
-											style={{
-												display: "flex",
-												gap: 10,
-												justifyContent: "flex-end",
-											}}>
-											<EditButton
-												style={{ background: "#E8AE9E" }}
-												onClick={() => handleDeleteEstateDoc(doc._id)}>
-												Usuń dokument
-											</EditButton>
-										</Td>
-									</TableRow>
-								))
+								<>
+									{/* Renderowanie paczek dokumentów */}
+									{Object.entries(estateBatches).map(([batchId, docs]) => (
+										<React.Fragment key={batchId}>
+											<tr>
+												<td colSpan={7} style={{ padding: 0, border: 'none' }}>
+													<BatchGroup>
+														<BatchHeader>
+															<BatchTitle>
+																Paczka dokumentów ({docs.length} plików) - {new Date(docs[0]?.createdAt).toLocaleDateString("pl-PL")}
+															</BatchTitle>
+															<BatchDeleteButton onClick={() => handleDeleteBatch(batchId)}>
+																Usuń całą paczkę
+															</BatchDeleteButton>
+														</BatchHeader>
+														<BatchContent>
+															{docs.map(doc => renderDocument(doc))}
+														</BatchContent>
+													</BatchGroup>
+												</td>
+											</tr>
+										</React.Fragment>
+									))}
+									
+									{/* Renderowanie pojedynczych dokumentów */}
+									{singleEstateDocs.map(doc => renderDocument(doc))}
+								</>
 							)}
 						</Table>
 					) : activeTab === 1 ? (

@@ -204,7 +204,16 @@ export default function LoginPage() {
 				{ email: email.trim().toLowerCase(), password }
 			);
 			localStorage.setItem("token", response.data.accessToken);
-			localStorage.setItem("managerId", response.data.managerId);
+			// Dodatkowe pola dla współpracowników
+			if (response.data.userType) localStorage.setItem("userType", response.data.userType);
+			if (response.data.role) localStorage.setItem("role", response.data.role);
+			if (response.data.userId) localStorage.setItem("userId", response.data.userId);
+			// managerId: dla managera = jego własne userId, dla współpracownika = managerId z backendu
+			const normalizedManagerId =
+				response.data.userType === "manager"
+					? response.data.userId
+					: response.data.managerId;
+			if (normalizedManagerId) localStorage.setItem("managerId", normalizedManagerId);
 			window.location.href = "/panelManager";
 		} catch (err: any) {
 			// Zmieniona wiadomość błędu:

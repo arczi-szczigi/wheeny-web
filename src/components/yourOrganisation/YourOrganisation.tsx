@@ -65,7 +65,7 @@ const QuarterIcon = styled.img`
 const StatNumber = styled.span`
 	color: #202020;
 	font-size: 40px;
-	font-family: Roboto;
+	font-family: Roboto, sans-serif;
 	font-weight: 700;
 	letter-spacing: 2px;
 	z-index: 2;
@@ -74,7 +74,7 @@ const StatNumber = styled.span`
 const StatLabel = styled.span`
 	color: #4d4d4d;
 	font-size: 12px;
-	font-family: Roboto;
+	font-family: Roboto, sans-serif;
 	font-weight: 400;
 	letter-spacing: 0.6px;
 	margin-top: 4px;
@@ -97,7 +97,7 @@ const CalendarBox = styled.div`
 const CalendarLabel = styled.span`
 	color: white;
 	font-size: 12px;
-	font-family: Roboto;
+	font-family: Roboto, sans-serif;
 	font-weight: 700;
 	letter-spacing: 0.6px;
 `;
@@ -105,7 +105,7 @@ const CalendarLabel = styled.span`
 const CalendarDate = styled.span`
 	color: white;
 	font-size: 30px;
-	font-family: Roboto;
+	font-family: Roboto, sans-serif;
 	font-weight: 300;
 	letter-spacing: 1.5px;
 	margin-top: 4px;
@@ -128,7 +128,7 @@ const SectionHeader = styled.div`
 const SectionTitle = styled.h2`
 	color: #202020;
 	font-size: 26px;
-	font-family: Roboto;
+	font-family: Roboto, sans-serif;
 	font-weight: 700;
 	letter-spacing: 1.3px;
 	margin: 0;
@@ -138,7 +138,7 @@ const ProButton = styled.button`
 	background: #ffd100;
 	color: #202020;
 	font-size: 10px;
-	font-family: Roboto;
+	font-family: Roboto, sans-serif;
 	font-weight: 400;
 	letter-spacing: 0.5px;
 	border: none;
@@ -173,7 +173,7 @@ const InputLabelRow = styled.div`
 const InputLabel = styled.label`
 	color: #4d4d4d;
 	font-size: 14px;
-	font-family: Roboto;
+	font-family: Roboto, sans-serif;
 	font-weight: 400;
 	letter-spacing: 0.7px;
 `;
@@ -190,7 +190,7 @@ const InputField = styled.div`
 	padding: 9px 16px;
 	color: #4d4d4d;
 	font-size: 10px;
-	font-family: Roboto;
+	font-family: Roboto, sans-serif;
 	font-weight: 400;
 	letter-spacing: 0.5px;
 `;

@@ -5,6 +5,8 @@ import styled from "styled-components";
 import { useRouter } from "next/navigation";
 import { useMain } from "@/context/EstateContext";
 import type { Estate } from "@/context/EstateContext";
+import { useToastContext } from "@/components/toast/ToastContext";
+import EstateDocumentsModal from "../modal/EstateDocumentsModal";
 
 // --- Styled Components ---
 const Wrapper = styled.div`
@@ -42,7 +44,7 @@ const BannerInfo = styled.div`
 const BannerTitle = styled.span`
 	color: black;
 	font-size: 24px;
-	font-family: Roboto;
+	font-family: Roboto, sans-serif;
 	font-weight: 400;
 	letter-spacing: 1.2px;
 `;
@@ -50,7 +52,7 @@ const BannerTitle = styled.span`
 const BannerName = styled.span`
 	color: #202020;
 	font-size: 22px;
-	font-family: Roboto;
+	font-family: Roboto, sans-serif;
 	font-weight: 700;
 	letter-spacing: 1.1px;
 	text-transform: capitalize;
@@ -59,7 +61,7 @@ const BannerName = styled.span`
 const BannerAddress = styled.span`
 	color: #202020;
 	font-size: 16px;
-	font-family: Roboto;
+	font-family: Roboto, sans-serif;
 	font-weight: 300;
 	letter-spacing: 0.8px;
 `;
@@ -70,7 +72,7 @@ const BannerButton = styled.button`
 	border-radius: 30px;
 	color: white;
 	font-size: 10px;
-	font-family: Roboto;
+	font-family: Roboto, sans-serif;
 	font-weight: 400;
 	letter-spacing: 0.5px;
 	border: none;
@@ -107,7 +109,7 @@ const CardHeaderRow = styled.div`
 const CardTitle = styled.span`
 	color: #202020;
 	font-size: 26px;
-	font-family: Roboto;
+	font-family: Roboto, sans-serif;
 	font-weight: 700;
 	letter-spacing: 1.3px;
 `;
@@ -118,7 +120,7 @@ const CardEditButton = styled.button`
 	border-radius: 30px;
 	color: #202020;
 	font-size: 10px;
-	font-family: Roboto;
+	font-family: Roboto, sans-serif;
 	font-weight: 400;
 	letter-spacing: 0.5px;
 	border: none;
@@ -135,7 +137,7 @@ const SaveButton = styled.button`
 	border-radius: 30px;
 	color: #fff;
 	font-size: 10px;
-	font-family: Roboto;
+	font-family: Roboto, sans-serif;
 	font-weight: 400;
 	letter-spacing: 0.5px;
 	border: none;
@@ -153,7 +155,7 @@ const CancelButton = styled.button`
 	border-radius: 30px;
 	color: #202020;
 	font-size: 10px;
-	font-family: Roboto;
+	font-family: Roboto, sans-serif;
 	font-weight: 400;
 	letter-spacing: 0.5px;
 	border: none;
@@ -203,7 +205,7 @@ const FieldIcon = styled.img`
 const FieldLabel = styled.span`
 	color: #4d4d4d;
 	font-size: 14px;
-	font-family: Roboto;
+	font-family: Roboto, sans-serif;
 	font-weight: 400;
 	letter-spacing: 0.7px;
 `;
@@ -221,14 +223,14 @@ const FieldValueBox = styled.div<{ bg?: string }>`
 const FieldValue = styled.span`
 	color: #4d4d4d;
 	font-size: 10px;
-	font-family: Roboto;
+	font-family: Roboto, sans-serif;
 	font-weight: 400;
 	letter-spacing: 0.5px;
 `;
 
 const FieldInput = styled.input`
 	font-size: 12px;
-	font-family: Roboto;
+	font-family: Roboto, sans-serif;
 	font-weight: 400;
 	letter-spacing: 0.5px;
 	border: none;
@@ -254,7 +256,7 @@ const VerifyHeaderRow = styled.div`
 const VerifyTitle = styled.span`
 	color: #202020;
 	font-size: 26px;
-	font-family: Roboto;
+	font-family: Roboto, sans-serif;
 	font-weight: 700;
 	letter-spacing: 1.3px;
 `;
@@ -265,7 +267,7 @@ const VerifyButton = styled.button`
 	border-radius: 30px;
 	color: #202020;
 	font-size: 10px;
-	font-family: Roboto;
+	font-family: Roboto, sans-serif;
 	font-weight: 400;
 	letter-spacing: 0.5px;
 	border: none;
@@ -305,7 +307,7 @@ const StatusBox = styled.div<{ bg?: string }>`
 const StatusValue = styled.span`
 	color: #202020;
 	font-size: 10px;
-	font-family: Roboto;
+	font-family: Roboto, sans-serif;
 	font-weight: 400;
 	letter-spacing: 0.5px;
 `;
@@ -376,6 +378,7 @@ export const YourEstate: React.FC = () => {
 		forceReload,
 	} = useMain();
 
+	const { showToast } = useToastContext();
 	const router = useRouter();
 
 	// --- wyciągamy osiedle ---
@@ -391,12 +394,12 @@ export const YourEstate: React.FC = () => {
 	const statusColor = statusColors[status] || "#e18c7d";
 
 	// --- dokumenty ---
-	const estateDocuments =
-		documents?.filter(d => d.estate === estate?._id) || [];
-	const verifyDoc = estateDocuments.length ? estateDocuments[0] : null;
 
 	// --- obsługa popupu info ---
 	const [popupMsg, setPopupMsg] = useState<string | null>(null);
+
+	// --- modal dokumentów ---
+	const [showDocumentsModal, setShowDocumentsModal] = useState(false);
 
 	// --- tryb edycji ---
 	const [edit, setEdit] = useState(false);
@@ -459,11 +462,11 @@ export const YourEstate: React.FC = () => {
 					address: editData.address,
 				}),
 			});
-			setPopupMsg("Dane osiedla zostały zaktualizowane.");
+			showToast({ type: "success", message: "Osiedle zaktualizowane" });
 			setEdit(false);
 			forceReload();
 		} catch (e) {
-			setPopupMsg("Błąd zapisu danych osiedla.");
+			showToast({ type: "error", message: "Błąd zapisu danych osiedla" });
 		}
 	};
 
@@ -531,7 +534,7 @@ export const YourEstate: React.FC = () => {
 									</CancelButton>
 								</div>
 							) : (
-								<CardEditButton onClick={() => setEdit(true)}>
+								<CardEditButton onClick={() => router.push("/allEstates")}>
 									Edytuj dane osiedla
 								</CardEditButton>
 							)}
@@ -734,28 +737,9 @@ export const YourEstate: React.FC = () => {
 									<FieldLabel>Dokument weryfikujący osiedle</FieldLabel>
 								</FieldLabelRow>
 								<FieldValueBox>
-									{estate.contractUrl ? (
-										<Link
-											href={
-												estate.contractUrl.startsWith("http")
-													? estate.contractUrl
-													: `${process.env.NEXT_PUBLIC_API_URL}${estate.contractUrl}`
-											}
-											target='_blank'
-											rel='noopener noreferrer'
-											download>
-											Dokumenty osiedla
-										</Link>
-									) : verifyDoc ? (
-										<Link
-											href={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${verifyDoc.filename}`}
-											target='_blank'
-											rel='noopener noreferrer'>
-											{verifyDoc.originalName}
-										</Link>
-									) : (
-										<FieldValue>Brak dokumentu</FieldValue>
-									)}
+									<VerifyButton onClick={() => setShowDocumentsModal(true)}>
+										Dokumenty Osiedla
+									</VerifyButton>
 								</FieldValueBox>
 							</VerifyCol>
 							<VerifyCol>
@@ -773,6 +757,15 @@ export const YourEstate: React.FC = () => {
 						</VerifySection>
 					</Card>
 				</>
+			)}
+			
+			{/* Modal dokumentów osiedla */}
+			{showDocumentsModal && estate && (
+				<EstateDocumentsModal
+					open={showDocumentsModal}
+					onClose={() => setShowDocumentsModal(false)}
+					estateId={estate._id}
+				/>
 			)}
 		</Wrapper>
 	);

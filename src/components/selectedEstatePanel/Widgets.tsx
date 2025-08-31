@@ -27,7 +27,7 @@ const TitleRow = styled.div`
 `;
 
 const Title = styled.h2`
-	font-family: Roboto;
+	font-family: Roboto, sans-serif;
 	font-size: 20px;
 	color: black;
 	font-weight: 400;
@@ -78,7 +78,7 @@ const WidgetContent = styled.div`
 const WidgetText = styled.div`
 	color: #202020;
 	font-size: 16px;
-	font-family: Roboto;
+	font-family: Roboto, sans-serif;
 	font-weight: 400;
 	letter-spacing: 0.6px;
 	margin-bottom: 8px;
@@ -89,7 +89,7 @@ const WidgetButton = styled.button`
 	color: white;
 	border: none;
 	border-radius: 30px;
-	font-family: Roboto;
+	font-family: Roboto, sans-serif;
 	font-size: 16px;
 	font-weight: 400;
 	letter-spacing: 0.6px;

@@ -28,7 +28,7 @@ const CenteredContent = styled.div`
 
 const Title = styled.h1`
 	font-size: 30px;
-	font-family: Roboto;
+	font-family: Roboto, sans-serif;
 	font-weight: 400;
 	letter-spacing: 1.5px;
 	color: #202020;
@@ -105,7 +105,7 @@ const TrashIcon = styled.img`
 const RowLabel = styled.div`
 	color: #4d4d4d;
 	font-size: 12px;
-	font-family: Roboto;
+	font-family: Roboto, sans-serif;
 	font-weight: 500;
 	letter-spacing: 0.6px;
 `;
@@ -113,7 +113,7 @@ const RowLabel = styled.div`
 const FileNameLink = styled.a`
 	color: #222;
 	font-size: 13px;
-	font-family: Roboto;
+	font-family: Roboto, sans-serif;
 	font-weight: 500;
 	letter-spacing: 0.5px;
 	text-decoration: underline;
@@ -142,7 +142,7 @@ const RowColGroup = styled.div`
 const ColHeader = styled.div`
 	color: #9d9d9d;
 	font-size: 10px;
-	font-family: Roboto;
+	font-family: Roboto, sans-serif;
 	font-weight: 500;
 	letter-spacing: 0.5px;
 	margin-bottom: 1px;
@@ -151,7 +151,7 @@ const ColHeader = styled.div`
 const RowValue = styled.div`
 	color: #202020;
 	font-size: 10px;
-	font-family: Roboto;
+	font-family: Roboto, sans-serif;
 	font-weight: 500;
 	letter-spacing: 0.5px;
 `;
@@ -169,7 +169,7 @@ const ActionBtn = styled.button<{ danger?: boolean }>`
 	background: ${({ danger }) => (danger ? "#e8ae9e" : "#d9d9d9")};
 	color: #202020;
 	font-size: 10px;
-	font-family: Roboto;
+	font-family: Roboto, sans-serif;
 	font-weight: 400;
 	letter-spacing: 0.5px;
 	cursor: pointer;

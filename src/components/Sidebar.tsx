@@ -1,4 +1,5 @@
 // components/Sidebar.tsx
+import React from "react";
 import styled from "styled-components";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
@@ -293,8 +294,8 @@ export const Sidebar = () => {
 								item.label === "Panel managera" ||
 								item.label === "Panel wyboru osiedla";
 							return (
-								<>
-									<MenuItemBox key={item.label}>
+								<React.Fragment key={`${item.label}-${i}`}>
+									<MenuItemBox>
 										<MenuItem
 											$active={isActive}
 											onClick={() => router.push(item.path)}>
@@ -304,16 +305,16 @@ export const Sidebar = () => {
 										</MenuItem>
 									</MenuItemBox>
 									{showDivider && <Divider />}
-								</>
+								</React.Fragment>
 							);
 						})}
 					</MenuList>
 					<Divider />
 					<MenuList>
-						{menuBottomItems.map(item => {
+						{menuBottomItems.map((item, i) => {
 							const isActive = pathname === item.path;
 							return (
-								<MenuItemBox key={item.label}>
+								<MenuItemBox key={`${item.label}-${i}`}>
 									<MenuItem
 										$active={isActive}
 										onClick={() => router.push(item.path)}>

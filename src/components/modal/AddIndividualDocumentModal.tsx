@@ -402,6 +402,13 @@ export default function AddIndividualDocumentModal({
 
 	if (!open) return null;
 
+	// Po otwarciu modala (dodawanie zbiorcze po zamianie nazw) od razu pokaż automatyzację
+	useEffect(() => {
+		if (open) {
+			setShowAutomationModal(true);
+		}
+	}, [open]);
+
 	return (
 		<Overlay>
 			<ModalBox>
@@ -409,7 +416,7 @@ export default function AddIndividualDocumentModal({
 					<IconCircle>
 						<img src='/assets/documentsEstate/folder.png' alt='folder' />
 					</IconCircle>
-					<Title>Dodaj dokumenty indywidualne</Title>
+					<Title>Dodaj dokumenty zbiorcze</Title>
 					<AutomationButton
 						type="button"
 						onClick={() => setShowAutomationModal(true)}
@@ -418,7 +425,7 @@ export default function AddIndividualDocumentModal({
 					</AutomationButton>
 				</Header>
 				<Subtitle>
-					Wybierz mieszkańca i dodaj dla niego różne dokumenty.
+					Wybierz mieszkańca i dodaj dla niego dokumenty zbiorczo.
 				</Subtitle>
 				<form onSubmit={handleSubmit}>
 					<SearchWrapper>

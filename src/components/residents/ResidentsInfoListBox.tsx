@@ -176,7 +176,12 @@ export const ResidentsInfoListBox: React.FC<ResidentsInfoListBoxProps> = ({
 	// --- SEARCH / FILTER / SORT STATE ---
 	const [searchValue, setSearchValue] = useState("");
 	const [filterStatus, setFilterStatus] = useState<FilterStatus>("all");
-	const [sortValue, setSortValue] = useState<SortValue>("flatNumber");
+	const [sortValue, setSortValue] = useState<SortValue>("numerical");
+
+	const parseApartmentNumber = (flatNumber: string): number => {
+		const match = (flatNumber || "").toString().match(/\d+/);
+		return match ? parseInt(match[0], 10) : 0;
+	};
 
 	const filteredResidents = useMemo(() => {
 		return residents
@@ -218,6 +223,10 @@ export const ResidentsInfoListBox: React.FC<ResidentsInfoListBoxProps> = ({
 			})
 			.sort((a, b) => {
 				switch (sortValue) {
+					case "numerical":
+						return parseApartmentNumber(a.flatNumber) - parseApartmentNumber(b.flatNumber);
+					case "numericalDesc":
+						return parseApartmentNumber(b.flatNumber) - parseApartmentNumber(a.flatNumber);
 					case "flatNumber":
 						return a.flatNumber.localeCompare(b.flatNumber, "pl");
 					case "flatNumberDesc":
@@ -287,6 +296,8 @@ export const ResidentsInfoListBox: React.FC<ResidentsInfoListBoxProps> = ({
 					<b>
 						{
 							{
+								numerical: "Numer mieszkania 1-999",
+								numericalDesc: "Numer mieszkania 999-1",
 								flatNumber: "Numer mieszkania A-Z",
 								flatNumberDesc: "Numer mieszkania Z-A",
 								name: "Imię i nazwisko A-Z",

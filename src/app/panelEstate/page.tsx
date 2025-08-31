@@ -133,7 +133,7 @@ export default function PanelEstatePage() {
 	);
 	const estates = selectedOrganisation?.estates ?? [];
 
-	// Po sukcesie dodania zamykamy modal. Context automatycznie wywoła fetch.
+	// Po sukcesie dodania osiedla zamykamy modal
 	const handleEstateSuccess = () => setModalOpen(false);
 
 	// Handler kliknięcia na "Wybierz osiedle"

@@ -196,7 +196,7 @@ export default function AdvancePaymentPage() {
 	const [activeTab, setActiveTab] = useState<0 | 1>(0); // 0 = czynsz, 1 = saldo
 	const [search, setSearch] = useState("");
 	const [filterStatus, setFilterStatus] = useState<FilterStatus>("all");
-	const [sortValue, setSortValue] = useState<SortValue>("az");
+	const [sortValue, setSortValue] = useState<SortValue>("numerical");
 	const [showAddPaymentsModal, setShowAddPaymentsModal] = useState(false);
 	const [showAddBalancesModal, setShowAddBalancesModal] = useState(false);
 
@@ -214,6 +214,13 @@ export default function AdvancePaymentPage() {
 
 	// Toast
 	const { toasts, removeToast, showToast } = useToast();
+
+	// Funkcja pomocnicza do parsowania numeru mieszkania
+	const parseApartmentNumber = (flatNumber: string): number => {
+		// Próbuje wyciągnąć liczbę z początku stringu (np. "12A" -> 12, "5" -> 5, "M12" -> 12)
+		const match = flatNumber.match(/\d+/);
+		return match ? parseInt(match[0], 10) : 0;
+	};
 
 	// Funkcja filtrowania i sortowania dla payments
 	const getFilteredAndSortedPayments = () => {
@@ -236,6 +243,10 @@ export default function AdvancePaymentPage() {
 		// Sortowanie
 		filtered.sort((a, b) => {
 			switch (sortValue) {
+				case "numerical":
+					return parseApartmentNumber(a.flatNumber) - parseApartmentNumber(b.flatNumber);
+				case "numericalDesc":
+					return parseApartmentNumber(b.flatNumber) - parseApartmentNumber(a.flatNumber);
 				case "az":
 					return a.flatNumber.localeCompare(b.flatNumber, "pl");
 				case "za":
@@ -273,6 +284,10 @@ export default function AdvancePaymentPage() {
 		// Sortowanie
 		filtered.sort((a, b) => {
 			switch (sortValue) {
+				case "numerical":
+					return parseApartmentNumber(a.flatNumber) - parseApartmentNumber(b.flatNumber);
+				case "numericalDesc":
+					return parseApartmentNumber(b.flatNumber) - parseApartmentNumber(a.flatNumber);
 				case "az":
 					return a.flatNumber.localeCompare(b.flatNumber, "pl");
 				case "za":
@@ -416,6 +431,8 @@ export default function AdvancePaymentPage() {
 								<b>
 									{
 										{
+											numerical: "1-999",
+											numericalDesc: "999-1",
 											az: "A-Z",
 											za: "Z-A",
 											amountAsc: "Kwota rosnąco",

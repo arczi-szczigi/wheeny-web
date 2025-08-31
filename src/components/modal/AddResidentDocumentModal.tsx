@@ -5,6 +5,7 @@ import React, { useState, useEffect } from "react";
 import styled from "styled-components";
 import { useDocForResidents } from "@/context/DocForResidentsContext";
 import { Resident } from "@/context/AnnouncementContext";
+import { useToastContext } from "@/components/toast/ToastContext";
 
 // Overlay backdrop
 const Overlay = styled.div`
@@ -251,6 +252,7 @@ export default function AddResidentDocumentModal({
 		loading: uploading,
 		error: uploadError,
 	} = useDocForResidents();
+	const { showToast } = useToastContext();
 	const [search, setSearch] = useState("");
 	const [selected, setSelected] = useState<string[]>([]);
 	const [file, setFile] = useState<File | null>(null);
@@ -286,8 +288,10 @@ export default function AddResidentDocumentModal({
 				await uploadDocument({ file, estateId, title, residentId: id });
 			onSuccess?.();
 			onClose();
+			showToast({ type: "success", message: "Dokument dodany." });
 		} catch (e: any) {
 			setError(e.message);
+			showToast({ type: "error", message: e?.message || "Błąd przesyłania dokumentu" });
 		}
 	};
 
@@ -298,11 +302,11 @@ export default function AddResidentDocumentModal({
 					<IconCircle>
 						<img src='/assets/documentsEstate/folder.png' alt='folder' />
 					</IconCircle>
-					<Title>Dodaj dokument - zbiorczo</Title>
+					<Title>Dodaj dokument - indywidualnie</Title>
 					<Step>1/1</Step>
 				</Header>
 				<Subtitle>
-					Dodaj zbiorczo dokumenty dla mieszkańców.
+					Dodaj indywidualnie dokumenty dla wielu mieszkańców.
 				</Subtitle>
 				<form onSubmit={handleSubmit}>
 					<SearchWrapper>

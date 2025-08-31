@@ -50,7 +50,7 @@ const Header = styled.div`
 const MonthTitle = styled.span`
 	color: black;
 	font-size: 20px;
-	font-family: Roboto;
+	font-family: Roboto, sans-serif;
 	font-weight: 700;
 	letter-spacing: 1px;
 	text-align: center;
@@ -99,7 +99,7 @@ const DaysHeader = styled.div`
 const DayName = styled.span`
 	color: #4d4d4d;
 	font-size: 11px;
-	font-family: Roboto;
+	font-family: Roboto, sans-serif;
 	font-weight: 300;
 	letter-spacing: 0.55px;
 	text-align: center;
@@ -124,7 +124,7 @@ const DayCell = styled.div<{ isToday?: boolean; isOtherMonth?: boolean }>`
 	span {
 		color: ${({ isOtherMonth }) => (isOtherMonth ? "#DADADA" : "#4D4D4D")};
 		font-size: 14px;
-		font-family: Roboto;
+		font-family: Roboto, sans-serif;
 		font-weight: 400;
 		letter-spacing: 0.7px;
 		z-index: 2;

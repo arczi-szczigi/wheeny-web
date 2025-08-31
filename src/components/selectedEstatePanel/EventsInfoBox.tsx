@@ -42,7 +42,7 @@ const ScrollableTable = styled.div`
 
 const Title = styled.div`
 	font-size: 20px;
-	font-family: Roboto;
+	font-family: Roboto, sans-serif;
 	font-weight: 400;
 	color: black;
 	letter-spacing: 1px;
@@ -60,7 +60,7 @@ const HeaderRow = styled.div`
 	align-items: center;
 	color: #dadada;
 	font-size: 12px;
-	font-family: Roboto;
+	font-family: Roboto, sans-serif;
 	font-weight: 400;
 	letter-spacing: 0.6px;
 	margin-bottom: 8px;
@@ -78,7 +78,7 @@ const Row = styled.div<{ status: keyof typeof STATUS_COLORS }>`
 	grid-template-columns: 50px 1.7fr 1.2fr 1fr 1fr;
 	align-items: center;
 	font-size: 14px;
-	font-family: Roboto;
+	font-family: Roboto, sans-serif;
 	letter-spacing: 0.7px;
 	color: #4d4d4d;
 	min-height: 56px;
@@ -115,7 +115,7 @@ const IconSVG = styled.svg`
 const EventTitle = styled.span`
 	color: #4d4d4d;
 	font-size: 14px;
-	font-family: Roboto;
+	font-family: Roboto, sans-serif;
 	font-weight: 400;
 	letter-spacing: 0.7px;
 `;
@@ -123,7 +123,7 @@ const EventTitle = styled.span`
 const EventDate = styled.span`
 	color: #868686;
 	font-size: 11px;
-	font-family: Roboto;
+	font-family: Roboto, sans-serif;
 	font-weight: 400;
 	letter-spacing: 0.5px;
 `;
@@ -131,7 +131,7 @@ const EventDate = styled.span`
 const EventStatus = styled.b<{ color: string }>`
 	color: ${({ color }) => color};
 	font-size: 13px;
-	font-family: Roboto;
+	font-family: Roboto, sans-serif;
 	font-weight: 600;
 	letter-spacing: 0.5px;
 `;

@@ -54,6 +54,7 @@ export type Manager = {
 	firstName: string;
 	lastName: string;
 	phone: string;
+	profileImage?: string;
 	createdAt: string;
 	updatedAt: string;
 };
@@ -140,6 +141,7 @@ export type EstateDocument = {
 
 type MainContextType = {
 	manager: Manager | null;
+	currentUserName?: string | null; // imię i nazwisko aktualnie zalogowanego (manager lub coworker)
 	organisations: Organisation[];
 	selectedOrganisationId: string | null;
 	setSelectedOrganisationId: (id: string | null) => void;
@@ -190,6 +192,7 @@ type MainContextType = {
 
 const MainContext = createContext<MainContextType>({
 	manager: null,
+	currentUserName: null,
 	organisations: [],
 	selectedOrganisationId: null,
 	setSelectedOrganisationId: () => {},
@@ -239,6 +242,7 @@ export const MainProvider = ({ children }: { children: ReactNode }) => {
 	}, [token]);
 
 	const [manager, setManager] = useState<Manager | null>(null);
+	const [currentUserName, setCurrentUserName] = useState<string | null>(null);
 	const [organisations, setOrganisations] = useState<Organisation[]>([]);
 	const [selectedOrganisationId, setSelectedOrganisationId] = useState<
 		string | null
@@ -336,7 +340,7 @@ export const MainProvider = ({ children }: { children: ReactNode }) => {
 		const fetchData = async () => {
 			setLoading(true);
 			try {
-				// MANAGER
+				// MANAGER (zawsze ładujemy menedżera dla danych dashboardu)
 				console.log("[EC] Fetch manager z tokenem:", token);
 				const mgrRes = await fetch(`${API_URL}/managers/me`, {
 					headers: { Authorization: `Bearer ${token}` },
@@ -345,6 +349,23 @@ export const MainProvider = ({ children }: { children: ReactNode }) => {
 				const mgr = await mgrRes.json();
 				setManager(mgr);
 				console.log("[EC] Ustawiam managera:", mgr);
+
+				// Ustal nazwę aktualnie zalogowanego użytkownika (manager lub coworker)
+				const userType =
+					typeof window !== "undefined" ? localStorage.getItem("userType") : null;
+				if (userType === "coworker") {
+					const meRes = await fetch(`${API_URL}/coworkers/me`, {
+						headers: { Authorization: `Bearer ${token}` },
+					});
+					if (meRes.ok) {
+						const me = await meRes.json();
+						setCurrentUserName(`${me.firstName} ${me.lastName}`);
+					} else {
+						setCurrentUserName(`${mgr.firstName} ${mgr.lastName}`);
+					}
+				} else {
+					setCurrentUserName(`${mgr.firstName} ${mgr.lastName}`);
+				}
 
 				// ORGANISATIONS (tylko managera!)
 				const orgRes = await fetch(`${API_URL}/organisations/my`, {
@@ -907,6 +928,7 @@ export const MainProvider = ({ children }: { children: ReactNode }) => {
 		<MainContext.Provider
 			value={{
 				manager,
+				currentUserName,
 				organisations,
 				selectedOrganisationId,
 				setSelectedOrganisationId,
