@@ -3,6 +3,8 @@
 import React, { useState, useEffect } from "react";
 import styled from "styled-components";
 import AddCoworkerModal from "../modal/AddCoworkerModal";
+import EditCoworkerModal from "../modal/EditCoworkerModal";
+import ConfirmDeleteModal from "../modal/ConfirmDeleteModal";
 import { useToastContext } from "@/components/toast/ToastContext";
 import { FiPlus, FiSearch } from "react-icons/fi";
 
@@ -297,9 +299,13 @@ const EmptyState = styled.div`
 export default function YourCoworkers() {
 	const { showToast } = useToastContext();
 	const [showAddModal, setShowAddModal] = useState(false);
+	const [showEditModal, setShowEditModal] = useState(false);
+	const [showDeleteModal, setShowDeleteModal] = useState(false);
+	const [selectedCoworker, setSelectedCoworker] = useState<any>(null);
 	const [coworkers, setCoworkers] = useState<any[]>([]);
 	const [coworkersCount, setCoworkersCount] = useState(0);
 	const [loading, setLoading] = useState(true);
+	const [deleteLoading, setDeleteLoading] = useState(false);
 	const [query, setQuery] = useState("");
 
 	const today = new Date();
@@ -403,16 +409,37 @@ export default function YourCoworkers() {
 	};
 
 	const handleEditCoworker = (coworkerId: string) => {
-		// TODO: Implementować edycję
-		console.log("Edit coworker:", coworkerId);
+		const coworker = coworkers.find(c => c._id === coworkerId);
+		if (coworker) {
+			setSelectedCoworker(coworker);
+			setShowEditModal(true);
+		}
 	};
 
-	const handleDeleteCoworker = async (coworkerId: string) => {
-		if (!confirm("Czy na pewno chcesz usunąć tego współpracownika?")) return;
+	const handleEditSuccess = (updatedCoworker: any) => {
+		// Update coworker in local list
+		setCoworkers(prev => prev.map(c => 
+			c._id === updatedCoworker._id ? updatedCoworker : c
+		));
+		setShowEditModal(false);
+		setSelectedCoworker(null);
+	};
 
+	const handleDeleteCoworker = (coworkerId: string) => {
+		const coworker = coworkers.find(c => c._id === coworkerId);
+		if (coworker) {
+			setSelectedCoworker(coworker);
+			setShowDeleteModal(true);
+		}
+	};
+
+	const handleDeleteConfirm = async () => {
+		if (!selectedCoworker) return;
+
+		setDeleteLoading(true);
 		try {
 			const token = localStorage.getItem("token");
-			const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/coworkers/${coworkerId}`, {
+			const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/coworkers/${selectedCoworker._id}`, {
 				method: "DELETE",
 				headers: {
 					Authorization: `Bearer ${token}`,
@@ -421,19 +448,25 @@ export default function YourCoworkers() {
 
 			if (!response.ok) throw new Error("Błąd usuwania współpracownika");
 
-			setCoworkers(prev => prev.filter(c => c._id !== coworkerId));
+			// Remove from local list
+			setCoworkers(prev => prev.filter(c => c._id !== selectedCoworker._id));
 			setCoworkersCount(prev => prev - 1);
-			
+
 			showToast({
 				type: "success",
 				message: "Współpracownik został usunięty"
 			});
+
+			setShowDeleteModal(false);
+			setSelectedCoworker(null);
 		} catch (error: any) {
 			console.error("Błąd usuwania współpracownika:", error);
 			showToast({
 				type: "error",
 				message: "Błąd podczas usuwania współpracownika"
 			});
+		} finally {
+			setDeleteLoading(false);
 		}
 	};
 
@@ -533,6 +566,31 @@ export default function YourCoworkers() {
 				open={showAddModal}
 				onClose={() => setShowAddModal(false)}
 				onSuccess={handleAddCoworker}
+			/>
+
+			{/* Modal edycji współpracownika */}
+			<EditCoworkerModal
+				open={showEditModal}
+				onClose={() => {
+					setShowEditModal(false);
+					setSelectedCoworker(null);
+				}}
+				onSuccess={handleEditSuccess}
+				coworker={selectedCoworker}
+			/>
+
+			{/* Modal potwierdzenia usunięcia */}
+			<ConfirmDeleteModal
+				open={showDeleteModal}
+				onClose={() => {
+					setShowDeleteModal(false);
+					setSelectedCoworker(null);
+				}}
+				onConfirm={handleDeleteConfirm}
+				title="Usuń współpracownika"
+				message={`Czy na pewno chcesz usunąć współpracownika <strong>${selectedCoworker?.firstName} ${selectedCoworker?.lastName}</strong>?<br><br>Ta akcja jest nieodwracalna.`}
+				confirmText="Usuń współpracownika"
+				isLoading={deleteLoading}
 			/>
 		</Container>
 	);

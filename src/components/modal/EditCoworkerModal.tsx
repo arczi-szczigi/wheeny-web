@@ -1,205 +1,216 @@
-"use client";
-
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import styled from "styled-components";
+import { FiX, FiUser, FiMail, FiPhone, FiLock, FiBriefcase } from "react-icons/fi";
 import { useToastContext } from "@/components/toast/ToastContext";
 
-// ——— STYLES ——————————————————————————————————————————————————————
+// ============ STYLED COMPONENTS ============
+
 const Overlay = styled.div`
 	position: fixed;
-	inset: 0;
-	background: rgba(0, 0, 0, 0.13);
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	background: rgba(0, 0, 0, 0.5);
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	z-index: 2000;
+	z-index: 1000;
 `;
 
 const Modal = styled.div`
-	width: 700px;
-	max-width: 99vw;
-	border-radius: 22px;
-	background: #fafafa;
-	box-shadow: 0 0 40px rgba(0, 0, 0, 0.17);
-	padding: 38px 48px 32px 48px;
-	display: flex;
-	flex-direction: column;
-	gap: 18px;
+	background: white;
+	border-radius: 16px;
+	width: 90%;
+	max-width: 500px;
+	max-height: 90vh;
+	overflow-y: auto;
 	position: relative;
 `;
 
 const HeaderRow = styled.div`
 	display: flex;
-	align-items: flex-start;
 	justify-content: space-between;
+	align-items: center;
+	padding: 24px 24px 0 24px;
 `;
 
 const TitleRow = styled.div`
 	display: flex;
 	align-items: center;
-	gap: 14px;
-`;
-
-const Title = styled.div`
-	font-size: 23px;
-	font-weight: 700;
-	color: #232323;
-	display: flex;
-	align-items: center;
+	gap: 12px;
 `;
 
 const IconBox = styled.div`
-	background: #ffd100;
-	width: 44px;
-	height: 44px;
+	width: 40px;
+	height: 40px;
+	background: #f3f3f3;
+	border-radius: 10px;
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	border-radius: 14px;
-	margin-right: 2px;
+	color: #666;
+`;
+
+const Title = styled.h2`
+	margin: 0;
+	font-size: 20px;
+	font-weight: 600;
+	color: #202020;
+	font-family: Roboto, sans-serif;
 `;
 
 const CloseButton = styled.button`
-	background: none;
+	width: 32px;
+	height: 32px;
 	border: none;
-	cursor: pointer;
-	padding: 8px;
+	background: #f5f5f5;
 	border-radius: 8px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	cursor: pointer;
 	color: #666;
+	transition: all 0.2s;
+
 	&:hover {
-		background: #f0f0f0;
+		background: #e5e5e5;
+		color: #333;
 	}
 `;
 
-const Subtitle = styled.div`
-	font-size: 15px;
-	color: #8c8c8c;
-	font-weight: 400;
-	margin: 10px 0 18px 0;
+const Subtitle = styled.p`
+	margin: 8px 0 0 0;
+	padding: 0 24px;
+	color: #666;
+	font-size: 14px;
+	font-family: Roboto, sans-serif;
 `;
 
 const FieldsGrid = styled.div`
-	display: grid;
-	grid-template-columns: 1fr 1fr;
-	gap: 18px 36px;
-	margin-bottom: 6px;
+	padding: 24px;
+	display: flex;
+	flex-direction: column;
+	gap: 20px;
 `;
 
 const FieldBox = styled.div`
 	display: flex;
 	flex-direction: column;
-	gap: 7px;
-`;
-
-const SingleFieldBox = styled.div`
-	display: flex;
-	flex-direction: column;
-	gap: 7px;
-	grid-column: 1 / -1;
+	gap: 8px;
 `;
 
 const Label = styled.label`
-	color: #555;
-	font-size: 13px;
+	font-size: 14px;
 	font-weight: 500;
+	color: #333;
 	font-family: Roboto, sans-serif;
 `;
 
 const InputRow = styled.div<{ invalid?: boolean }>`
-	background: ${({ invalid }) => (invalid ? "#ffebee" : "#ffffff")};
-	border: 1px solid ${({ invalid }) => (invalid ? "#e57373" : "#e0e0e0")};
-	border-radius: 12px;
-	padding: 12px 16px;
 	display: flex;
 	align-items: center;
-	gap: 10px;
-	transition: border 0.2s;
+	gap: 12px;
+	padding: 12px 16px;
+	border: 1px solid ${props => props.invalid ? "#ef4444" : "#e1e1e1"};
+	border-radius: 8px;
+	background: white;
+	transition: border-color 0.2s;
+
 	&:focus-within {
-		border-color: ${({ invalid }) => (invalid ? "#e57373" : "#ffd100")};
+		border-color: ${props => props.invalid ? "#ef4444" : "#3b82f6"};
 	}
 `;
 
 const Input = styled.input`
+	flex: 1;
 	border: none;
 	outline: none;
-	flex: 1;
 	font-size: 14px;
 	color: #333;
-	background: transparent;
 	font-family: Roboto, sans-serif;
+
 	&::placeholder {
-		color: #aaa;
+		color: #9d9d9d;
 	}
 `;
 
 const Select = styled.select`
+	flex: 1;
 	border: none;
 	outline: none;
-	flex: 1;
 	font-size: 14px;
 	color: #333;
+	font-family: Roboto, sans-serif;
 	background: transparent;
+	cursor: pointer;
+`;
+
+const ErrorText = styled.span`
+	font-size: 12px;
+	color: #ef4444;
 	font-family: Roboto, sans-serif;
 `;
 
-const ErrorText = styled.div`
-	color: #e57373;
-	font-size: 12px;
-	margin-top: 4px;
-`;
-
-const ButtonRow = styled.div`
+const ButtonsRow = styled.div`
 	display: flex;
-	gap: 16px;
-	margin-top: 20px;
+	gap: 12px;
+	padding: 0 24px 24px 24px;
 `;
 
 const Button = styled.button<{ variant?: "primary" | "secondary" }>`
 	flex: 1;
-	padding: 14px 20px;
-	border: none;
-	border-radius: 12px;
+	padding: 12px 20px;
+	border-radius: 8px;
 	font-size: 14px;
-	font-weight: 600;
-	cursor: pointer;
-	transition: background 0.2s;
+	font-weight: 500;
 	font-family: Roboto, sans-serif;
+	cursor: pointer;
+	transition: all 0.2s;
+	border: none;
 
-	${({ variant }) =>
-		variant === "primary"
-			? `
-		background: #ffd100;
-		color: #202020;
-		&:hover {
-			background: #e6c200;
+	${props => props.variant === "primary" ? `
+		background: #3b82f6;
+		color: white;
+		&:hover:not(:disabled) {
+			background: #2563eb;
 		}
-	`
-			: `
-		background: #e0e0e0;
+		&:disabled {
+			background: #9ca3af;
+			cursor: not-allowed;
+		}
+	` : `
+		background: #f5f5f5;
 		color: #666;
 		&:hover {
-			background: #d0d0d0;
+			background: #e5e5e5;
 		}
 	`}
-
-	&:disabled {
-		opacity: 0.6;
-		cursor: not-allowed;
-	}
 `;
 
-// ——— INTERFACE ——————————————————————————————————————————————————————
-interface AddCoworkerModalProps {
+const PasswordNote = styled.p`
+	font-size: 12px;
+	color: #666;
+	margin: 0;
+	font-family: Roboto, sans-serif;
+	font-style: italic;
+`;
+
+// ============ COMPONENT ============
+
+interface EditCoworkerModalProps {
 	open: boolean;
 	onClose: () => void;
-	onSuccess: (coworker: any) => void;
+	onSuccess: (updatedCoworker: any) => void;
+	coworker: any;
 }
 
-export default function AddCoworkerModal({
+export default function EditCoworkerModal({
 	open,
 	onClose,
 	onSuccess,
-}: AddCoworkerModalProps) {
+	coworker,
+}: EditCoworkerModalProps) {
 	const { showToast } = useToastContext();
 
 	const [formData, setFormData] = useState({
@@ -213,6 +224,21 @@ export default function AddCoworkerModal({
 
 	const [errors, setErrors] = useState<Record<string, string>>({});
 	const [isSubmitting, setIsSubmitting] = useState(false);
+
+	// Load coworker data when modal opens
+	useEffect(() => {
+		if (open && coworker) {
+			setFormData({
+				firstName: coworker.firstName || "",
+				lastName: coworker.lastName || "",
+				email: coworker.email || "",
+				phone: coworker.phone || "",
+				password: "", // Always empty for security
+				position: coworker.position || "employee",
+			});
+			setErrors({});
+		}
+	}, [open, coworker]);
 
 	const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
 		const { name, value } = e.target;
@@ -236,15 +262,14 @@ export default function AddCoworkerModal({
 		if (!formData.email.trim()) {
 			newErrors.email = "Email jest wymagany";
 		} else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-			newErrors.email = "Nieprawidłowy format email";
+			newErrors.email = "Niepoprawny format email";
 		}
 		if (!formData.phone.trim()) {
 			newErrors.phone = "Telefon jest wymagany";
 		}
-		if (!formData.password.trim()) {
-			newErrors.password = "Hasło jest wymagane";
-		} else if (formData.password.length < 6) {
-			newErrors.password = "Hasło musi mieć minimum 6 znaków";
+		// Password is optional for updates
+		if (formData.password && formData.password.length < 6) {
+			newErrors.password = "Hasło musi mieć co najmniej 6 znaków";
 		}
 
 		setErrors(newErrors);
@@ -254,18 +279,32 @@ export default function AddCoworkerModal({
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
 		
-		if (!validate()) return;
+		if (!validate() || !coworker?._id) return;
 
 		setIsSubmitting(true);
 		try {
 			const token = localStorage.getItem("token");
-			const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/coworkers`, {
-				method: "POST",
+			
+			// Prepare data - don't send password if empty
+			const updateData: any = {
+				firstName: formData.firstName.trim(),
+				lastName: formData.lastName.trim(),
+				email: formData.email.trim(),
+				phone: formData.phone.trim(),
+				position: formData.position,
+			};
+
+			if (formData.password) {
+				updateData.password = formData.password;
+			}
+
+			const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/coworkers/${coworker._id}`, {
+				method: "PUT",
 				headers: {
 					"Content-Type": "application/json",
 					Authorization: `Bearer ${token}`,
 				},
-				body: JSON.stringify(formData),
+				body: JSON.stringify(updateData),
 			});
 
 			if (!response.ok) {
@@ -276,34 +315,23 @@ export default function AddCoworkerModal({
 					throw new Error("Ten email jest już wykorzystywany. Wprowadź inny email.");
 				}
 				
-				throw new Error(errorData.message || "Błąd tworzenia konta współpracownika");
+				throw new Error(errorData.message || "Błąd aktualizacji danych współpracownika");
 			}
 
-			const newCoworker = await response.json();
+			const updatedCoworker = await response.json();
 			
 			showToast({
 				type: "success",
-				message: "Konto współpracownika zostało utworzone"
+				message: "Dane współpracownika zostały zaktualizowane"
 			});
 
-			onSuccess(newCoworker);
-			
-			// Reset form
-			setFormData({
-				firstName: "",
-				lastName: "",
-				email: "",
-				phone: "",
-				password: "",
-				position: "employee",
-			});
-			setErrors({});
+			onSuccess(updatedCoworker);
 			
 		} catch (error: any) {
-			console.error("Błąd tworzenia współpracownika:", error);
+			console.error("Błąd aktualizacji współpracownika:", error);
 			showToast({
 				type: "error",
-				message: error.message || "Błąd podczas tworzenia konta współpracownika"
+				message: error.message || "Błąd podczas aktualizacji danych współpracownika"
 			});
 		} finally {
 			setIsSubmitting(false);
@@ -331,15 +359,17 @@ export default function AddCoworkerModal({
 				<HeaderRow>
 					<TitleRow>
 						<IconBox>
-							<span style={{ fontSize: "20px" }}>👥</span>
+							<FiUser size={20} />
 						</IconBox>
-						<Title>Dodaj współpracownika</Title>
+						<Title>Edytuj współpracownika</Title>
 					</TitleRow>
-					<CloseButton onClick={handleClose}>✕</CloseButton>
+					<CloseButton onClick={handleClose}>
+						<FiX size={18} />
+					</CloseButton>
 				</HeaderRow>
 
 				<Subtitle>
-					Możesz dodać współpracowników do zarządzania kontem firmowym. Możesz ich usunąć bądź edytować w dowolnym momencie.
+					Zaktualizuj dane współpracownika "{coworker?.firstName} {coworker?.lastName}"
 				</Subtitle>
 
 				<form onSubmit={handleSubmit}>
@@ -347,12 +377,12 @@ export default function AddCoworkerModal({
 						<FieldBox>
 							<Label>Imię</Label>
 							<InputRow invalid={!!errors.firstName}>
+								<FiUser size={16} color="#9d9d9d" />
 								<Input
-									type="text"
 									name="firstName"
-									placeholder="Wpisz imię"
 									value={formData.firstName}
 									onChange={handleChange}
+									placeholder="Imię"
 								/>
 							</InputRow>
 							{errors.firstName && <ErrorText>{errors.firstName}</ErrorText>}
@@ -361,40 +391,41 @@ export default function AddCoworkerModal({
 						<FieldBox>
 							<Label>Nazwisko</Label>
 							<InputRow invalid={!!errors.lastName}>
+								<FiUser size={16} color="#9d9d9d" />
 								<Input
-									type="text"
 									name="lastName"
-									placeholder="Wpisz nazwisko"
 									value={formData.lastName}
 									onChange={handleChange}
+									placeholder="Nazwisko"
 								/>
 							</InputRow>
 							{errors.lastName && <ErrorText>{errors.lastName}</ErrorText>}
 						</FieldBox>
 
 						<FieldBox>
-							<Label>Adres email</Label>
+							<Label>Email</Label>
 							<InputRow invalid={!!errors.email}>
+								<FiMail size={16} color="#9d9d9d" />
 								<Input
-									type="email"
 									name="email"
-									placeholder="jan@gmail.com"
+									type="email"
 									value={formData.email}
 									onChange={handleChange}
+									placeholder="email@example.com"
 								/>
 							</InputRow>
 							{errors.email && <ErrorText>{errors.email}</ErrorText>}
 						</FieldBox>
 
 						<FieldBox>
-							<Label>Numer telefonu</Label>
+							<Label>Telefon</Label>
 							<InputRow invalid={!!errors.phone}>
+								<FiPhone size={16} color="#9d9d9d" />
 								<Input
-									type="tel"
 									name="phone"
-									placeholder="123-345-678"
 									value={formData.phone}
 									onChange={handleChange}
+									placeholder="+48 123 456 789"
 								/>
 							</InputRow>
 							{errors.phone && <ErrorText>{errors.phone}</ErrorText>}
@@ -403,6 +434,7 @@ export default function AddCoworkerModal({
 						<FieldBox>
 							<Label>Stanowisko</Label>
 							<InputRow>
+								<FiBriefcase size={16} color="#9d9d9d" />
 								<Select
 									name="position"
 									value={formData.position}
@@ -416,31 +448,34 @@ export default function AddCoworkerModal({
 						</FieldBox>
 
 						<FieldBox>
-							<Label>Hasło</Label>
+							<Label>Nowe hasło (opcjonalnie)</Label>
 							<InputRow invalid={!!errors.password}>
+								<FiLock size={16} color="#9d9d9d" />
 								<Input
-									type="password"
 									name="password"
-									placeholder="**********"
+									type="password"
 									value={formData.password}
 									onChange={handleChange}
+									placeholder="Pozostaw puste, aby nie zmieniać"
 								/>
 							</InputRow>
 							{errors.password && <ErrorText>{errors.password}</ErrorText>}
+							<PasswordNote>
+								Pozostaw puste, jeśli nie chcesz zmieniać hasła
+							</PasswordNote>
 						</FieldBox>
 					</FieldsGrid>
 
-					<ButtonRow>
-						<Button type="button" variant="secondary" onClick={handleClose}>
+					<ButtonsRow>
+						<Button type="button" onClick={handleClose}>
 							Anuluj
 						</Button>
 						<Button type="submit" variant="primary" disabled={isSubmitting}>
-							{isSubmitting ? "Dodawanie..." : "Zatwierdź"}
+							{isSubmitting ? "Zapisywanie..." : "Zapisz zmiany"}
 						</Button>
-					</ButtonRow>
+					</ButtonsRow>
 				</form>
 			</Modal>
 		</Overlay>
 	);
 }
-

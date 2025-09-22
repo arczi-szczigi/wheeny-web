@@ -5,6 +5,7 @@ import React, { useState, useEffect } from "react";
 import styled from "styled-components";
 import { useDocForResidents } from "@/context/DocForResidentsContext";
 import { Resident } from "@/context/AnnouncementContext";
+import { useToastContext } from "@/components/toast/ToastContext";
 import AddIndividualDocumentAutomationModal from "./AddIndividualDocumentAutomationModal";
 
 // Overlay backdrop
@@ -328,6 +329,7 @@ export default function AddIndividualDocumentModal({
 	residentsError,
 }: Props) {
 	const { uploadDocument } = useDocForResidents();
+	const { showToast } = useToastContext();
 	const [search, setSearch] = useState("");
 	const [selectedResident, setSelectedResident] = useState<string | null>(null);
 	const [documents, setDocuments] = useState<Array<{ title: string; file: File | null }>>([{ title: "", file: null }]);
@@ -393,10 +395,12 @@ export default function AddIndividualDocumentModal({
 					});
 				}
 			}
+			showToast({ type: "success", message: "Dokumenty zostały dodane." });
 			onSuccess?.();
 			onClose();
 		} catch (e: any) {
 			setError(e.message);
+			showToast({ type: "error", message: e?.message || "Błąd przesyłania dokumentów" });
 		}
 	};
 
@@ -406,24 +410,33 @@ export default function AddIndividualDocumentModal({
 	useEffect(() => {
 		if (open) {
 			setShowAutomationModal(true);
+		} else {
+			// Reset stanu przy zamknięciu
+			setShowAutomationModal(false);
+			setSelectedResident(null);
+			setDocuments([{ title: "", file: null }]);
+			setError(null);
+			setSearch("");
 		}
 	}, [open]);
 
 	return (
 		<Overlay>
-			<ModalBox>
-				<Header>
-					<IconCircle>
-						<img src='/assets/documentsEstate/folder.png' alt='folder' />
-					</IconCircle>
-					<Title>Dodaj dokumenty zbiorcze</Title>
-					<AutomationButton
-						type="button"
-						onClick={() => setShowAutomationModal(true)}
-					>
-						Użyj automatyzacji
-					</AutomationButton>
-				</Header>
+			{/* Renderuj główny modal tylko gdy nie jest otwarty modal automatyzacji */}
+			{!showAutomationModal && (
+				<ModalBox>
+					<Header>
+						<IconCircle>
+							<img src='/assets/documentsEstate/folder.png' alt='folder' />
+						</IconCircle>
+						<Title>Dodaj dokumenty zbiorcze</Title>
+						<AutomationButton
+							type="button"
+							onClick={() => setShowAutomationModal(true)}
+						>
+							Użyj automatyzacji
+						</AutomationButton>
+					</Header>
 				<Subtitle>
 					Wybierz mieszkańca i dodaj dla niego dokumenty zbiorczo.
 				</Subtitle>
@@ -549,12 +562,17 @@ export default function AddIndividualDocumentModal({
 						</Button>
 					</Footer>
 				</form>
-			</ModalBox>
+				</ModalBox>
+			)}
 			
 			{/* Modal automatyzacji */}
 			<AddIndividualDocumentAutomationModal
 				open={showAutomationModal}
-				onClose={() => setShowAutomationModal(false)}
+				onClose={() => {
+					setShowAutomationModal(false);
+					// Jeśli anulujemy automatyzację, zamykamy cały modal
+					onClose();
+				}}
 				onSuccess={() => {
 					setShowAutomationModal(false);
 					onSuccess?.();

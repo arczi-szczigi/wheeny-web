@@ -343,9 +343,6 @@ const ResidentsModal: React.FC<Props> = ({ open, onClose, estateId }) => {
 					}}>
 					Dodaj zbiorczo przy pomocy Excela
 				</ActionBtn>
-				<ActionBtn color='#FFD100' disabled>
-					Dodaj ręcznie
-				</ActionBtn>
 			</ActionsRow>
 			<StepCounter>1/3</StepCounter>
 		</>

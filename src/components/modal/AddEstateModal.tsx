@@ -397,9 +397,30 @@ export default function AddEstateModal({
 		}
 	}, [open]);
 
+	// Funkcja formatująca numer konta - dodaje myślniki co 4 cyfry
+	const formatAccountNumber = (value: string): string => {
+		// Usuń wszystkie znaki oprócz cyfr
+		const digitsOnly = value.replace(/\D/g, '');
+		
+		// Ogranicz do maksymalnie 24 cyfr (6 grup po 4)
+		const truncated = digitsOnly.slice(0, 24);
+		
+		// Dodaj myślniki co 4 cyfry
+		return truncated.replace(/(\d{4})(?=\d)/g, '$1-');
+	};
+
 	const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-		setForm({ ...form, [e.target.name]: e.target.value });
-		setFieldErrors(fe => ({ ...fe, [e.target.name]: "" }));
+		const { name, value } = e.target;
+		
+		// Specjalna obsługa dla numeru konta bankowego
+		if (name === 'bankAccountNumber') {
+			const formattedValue = formatAccountNumber(value);
+			setForm({ ...form, [name]: formattedValue });
+		} else {
+			setForm({ ...form, [name]: value });
+		}
+		
+		setFieldErrors(fe => ({ ...fe, [name]: "" }));
 	};
 
 	const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -436,8 +457,13 @@ export default function AddEstateModal({
 		if (!/^\d{2}-\d{3}$/.test(form.zipCode)) errs.zipCode = "Format: 00-000";
 		if (!form.buildingNumber.trim())
 			errs.buildingNumber = "Podaj numer budynku";
-		if (!/^\d{4}-\d{4}-\d{4}-\d{4}-\d{4}-\d{4}$/.test(form.bankAccountNumber))
-			errs.bankAccountNumber = "Format: 0000-0000-0000-0000-0000-0000";
+		
+		// Walidacja numeru konta - sprawdzamy tylko cyfry (bez myślników)
+		const accountDigitsOnly = form.bankAccountNumber.replace(/\D/g, '');
+		if (accountDigitsOnly.length !== 24) {
+			errs.bankAccountNumber = "Numer konta musi zawierać dokładnie 24 cyfry";
+		}
+		
 		if (!form.numberOfFlats || Number(form.numberOfFlats) <= 0)
 			errs.numberOfFlats = "Podaj liczbę mieszkań (>0)";
 		if (!/^[1-9]\d?$/.test(form.rentDueDate))
@@ -509,7 +535,8 @@ export default function AddEstateModal({
 		// FormData dla osiedla z plikiem
 		const formData = new FormData();
 		formData.append("name", form.name.trim());
-		formData.append("bankAccountNumber", form.bankAccountNumber.trim());
+		// Wysyłamy tylko cyfry numeru konta (bez myślników)
+		formData.append("bankAccountNumber", form.bankAccountNumber.replace(/\D/g, ''));
 		formData.append("rentDueDate", form.rentDueDate.trim());
 		formData.append("numberOfFlats", String(form.numberOfFlats));
 		formData.append("organisation", selectedOrganisationId!);
@@ -685,7 +712,7 @@ export default function AddEstateModal({
 										name='bankAccountNumber'
 										value={form.bankAccountNumber}
 										onChange={handleChange}
-										placeholder='0000-0000-0000-0000-0000-0000'
+										placeholder='Wpisz 24 cyfry numeru konta'
 									/>
 								</InputRow>
 								{fieldErrors.bankAccountNumber && (
@@ -824,7 +851,7 @@ export default function AddEstateModal({
 								/>
 								<CheckboxLabel htmlFor="documentConsent">
 									*Potwierdzam, że zapoznałem/am się z{" "}
-									<LinkText href="/regulamin" target="_blank" rel="noopener noreferrer">
+									<LinkText href="https://www.wheeny.com/regulamin/" target="_blank" rel="noopener noreferrer">
 										regulaminem
 									</LinkText>{" "}
 									oraz akceptuję jego postanowienia.
@@ -843,7 +870,7 @@ export default function AddEstateModal({
 								/>
 								<CheckboxLabel htmlFor="policyAcceptance">
 									*Potwierdzam, że zapoznałem/am się z{" "}
-									<LinkText href="/polityka-prywatnosci" target="_blank" rel="noopener noreferrer">
+									<LinkText href="https://www.wheeny.com/polityka-prywatnosci/" target="_blank" rel="noopener noreferrer">
 										polityką prywatności
 									</LinkText>{" "}
 									strony i akceptuję ich postanowienia.

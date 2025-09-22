@@ -2,6 +2,7 @@
 
 import React from "react";
 import styled, { css } from "styled-components";
+import { useMessages } from "@/context/MessagesContext";
 
 // Kolory statusów
 const dotColors: Record<string, string> = {
@@ -13,62 +14,7 @@ const dotColors: Record<string, string> = {
 	default: "#98C580",
 };
 
-const messages = [
-	{
-		name: "Marek Kowal",
-		message: "Mam pytanie odnośnie nadchodzącego zebrania...",
-		time: "11:40",
-		status: "ważna",
-	},
-	{
-		name: "Ewa Konieczna",
-		message: "Dzień dobry, kiedy otrzymamy rozliczenia za...",
-		time: "09:10",
-		status: "ważna",
-	},
-	{
-		name: "Dorota Przylas",
-		message: "Dziękujemy za ostanie spotkanI, było nam...",
-		time: "wczoraj",
-		status: "w trakcie",
-	},
-	{
-		name: "Rafał Borówka",
-		message: "Szanowni Państwo",
-		time: "wczoraj",
-		status: "zamknięta",
-	},
-	{
-		name: "Jacek Izolta",
-		message: "Dzień dobry, kiedy otrzymamy rozliczenia za...",
-		time: "12.05.2025",
-		status: "zamknięta",
-	},
-	{
-		name: "Stefan Niemas",
-		message: "Dzień dobry, kiedy otrzymamy rozliczenia za...",
-		time: "01.04.2025",
-		status: "odczytana",
-	},
-	{
-		name: "Tomek Cios",
-		message: "Dzień dobry, kiedy otrzymamy rozliczenia za...",
-		time: "21.04.2025",
-		status: "odczytana",
-	},
-	{
-		name: "Grzegorz Boberek",
-		message: "Dzień dobry, kiedy otrzymamy rozliczenia za...",
-		time: "19.03.2025",
-		status: "zamknięta",
-	},
-	{
-		name: "Ola Szfran",
-		message: "Dzień dobry, kiedy otrzymamy rozliczenia za...",
-		time: "02.02.2025",
-		status: "zamknięta",
-	},
-];
+// Usunięto statyczne dane - teraz używamy contextu
 
 const Wrapper = styled.div`
 	width: 370px;
@@ -207,12 +153,14 @@ const List = styled.div`
 	gap: 8px;
 `;
 
-const MsgRow = styled.div<{ status: string }>`
+const MsgRow = styled.div<{ status: string; selected?: boolean }>`
 	display: flex;
 	align-items: center;
 	border-radius: 10px;
-	background: ${({ status }) =>
-		status === "ważna"
+	background: ${({ status, selected }) =>
+		selected 
+			? "#D4F4DD" // Zielony dla wybranej osoby
+			: status === "ważna"
 			? "#FFD100"
 			: status === "w trakcie"
 			? "#E1F1FF"
@@ -220,6 +168,19 @@ const MsgRow = styled.div<{ status: string }>`
 	padding: 10px 10px 10px 0;
 	box-shadow: 1px 1px 10px rgba(0, 0, 0, 0.02);
 	min-height: 50px;
+	cursor: pointer;
+	transition: background 0.2s;
+	
+	&:hover {
+		background: ${({ status, selected }) =>
+			selected 
+				? "#D4F4DD"
+				: status === "ważna"
+				? "#FFC800"
+				: status === "w trakcie"
+				? "#D0E8FF"
+				: "#F5F5F5"};
+	}
 `;
 
 const AvatarCircle = styled.div`
@@ -294,7 +255,7 @@ const Dot = styled.div<{ status: string }>`
 `;
 
 export default function MsgBox() {
-	const [tab, setTab] = React.useState(0);
+	const { people, selectedPersonId, activeTab, setSelectedPersonId, setActiveTab } = useMessages();
 
 	// Tab ikony
 	const tabIcons = [
@@ -304,13 +265,16 @@ export default function MsgBox() {
 	];
 
 	// Filtruj wg tabów:
-	const filteredMessages = messages.filter(msg => {
-		if (tab === 0) return true;
-		if (tab === 1) return msg.status === "w trakcie";
-		if (tab === 2)
-			return msg.status === "zamknięta" || msg.status === "odczytana";
+	const filteredPeople = people.filter(person => {
+		if (activeTab === 0) return true;
+		if (activeTab === 1) return person.status === "w trakcie" || person.status === "ważna" || person.status === "nowa";
+		if (activeTab === 2) return person.status === "zamknięta" || person.status === "odczytana";
 		return true;
 	});
+
+	const handlePersonClick = (personId: string) => {
+		setSelectedPersonId(personId);
+	};
 
 	return (
 		<Wrapper>
@@ -328,31 +292,36 @@ export default function MsgBox() {
 				<SearchInput placeholder='Wyszukaj wiadomość' />
 			</SearchBar>
 			<Tabs>
-				<Tab active={tab === 0} onClick={() => setTab(0)}>
+				<Tab active={activeTab === 0} onClick={() => setActiveTab(0)}>
 					<TabIcon src={tabIcons[0]} alt='all' />
 					Wszystkie
 				</Tab>
-				<Tab active={tab === 1} onClick={() => setTab(1)}>
+				<Tab active={activeTab === 1} onClick={() => setActiveTab(1)}>
 					<TabIcon src={tabIcons[1]} alt='inprogress' />W trakcie
 				</Tab>
-				<Tab active={tab === 2} onClick={() => setTab(2)}>
+				<Tab active={activeTab === 2} onClick={() => setActiveTab(2)}>
 					<TabIcon src={tabIcons[2]} alt='closed' />
 					Zamknięte
 				</Tab>
 			</Tabs>
 			<List>
-				{filteredMessages.map((msg, i) => (
-					<MsgRow key={i} status={msg.status}>
+				{filteredPeople.map((person) => (
+					<MsgRow 
+						key={person.id} 
+						status={person.status}
+						selected={selectedPersonId === person.id}
+						onClick={() => handlePersonClick(person.id)}
+					>
 						<AvatarCircle>
 							<AvatarImg src='/assets/msgPanel/msg.png' alt='avatar' />
 						</AvatarCircle>
 						<MsgMain>
-							<Name>{msg.name}</Name>
-							<Message status={msg.status}>{msg.message}</Message>
+							<Name>{person.name}</Name>
+							<Message status={person.status}>{person.lastMessage}</Message>
 						</MsgMain>
 						<Meta>
-							<Time>{msg.time}</Time>
-							<Dot status={msg.status} />
+							<Time>{person.time}</Time>
+							<Dot status={person.status} />
 						</Meta>
 					</MsgRow>
 				))}

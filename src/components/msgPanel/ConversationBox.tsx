@@ -1,7 +1,8 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect, useRef } from "react";
 import styled from "styled-components";
+import { useMessages, loremResponses } from "@/context/MessagesContext";
 
 const WRAPPER_WIDTH = 660;
 
@@ -79,7 +80,75 @@ const StatusBtn = styled.button`
 	color: #202020;
 	letter-spacing: 0.6px;
 	cursor: pointer;
+	margin-right: 12px;
+	position: relative;
+`;
+
+const StatusDropdown = styled.div`
+	position: absolute;
+	top: 100%;
+	left: 0;
+	right: 0;
+	background: white;
+	border: 1px solid #e3e3e3;
+	border-radius: 10px;
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+	z-index: 1000;
+	margin-top: 4px;
+`;
+
+const StatusOption = styled.div`
+	padding: 10px 14px;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	cursor: pointer;
+	font-size: 12px;
+	font-family: Roboto;
+	font-weight: 500;
+	color: #202020;
+	
+	&:hover {
+		background: #f5f5f5;
+	}
+	
+	&:first-child {
+		border-top-left-radius: 10px;
+		border-top-right-radius: 10px;
+	}
+	
+	&:last-child {
+		border-bottom-left-radius: 10px;
+		border-bottom-right-radius: 10px;
+	}
+`;
+
+const StatusOptionIcon = styled.img`
+	width: 14px;
+	height: 14px;
+`;
+
+const ResetBtn = styled.button`
+	height: 40px;
+	background: #FFD100;
+	border-radius: 10px;
+	border: 1px solid #FFD100;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 0 20px;
+	font-size: 12px;
+	font-family: Roboto;
+	font-weight: 600;
+	color: #202020;
+	letter-spacing: 0.6px;
+	cursor: pointer;
 	margin-right: 32px;
+	transition: background 0.2s;
+	
+	&:hover {
+		background: #FFC800;
+	}
 `;
 
 const StatusIcon = styled.img`
@@ -206,77 +275,198 @@ const FooterIcon = styled.img`
 	cursor: pointer;
 `;
 
+// Dostępne statusy
+const statusOptions = [
+	{ value: "ważna", label: "Ważna", icon: "/assets/msgPanel/check.png" },
+	{ value: "w trakcie", label: "W trakcie", icon: "/assets/msgPanel/check.png" },
+	{ value: "zamknięta", label: "Zamknięta", icon: "/assets/msgPanel/delete.png" },
+	{ value: "odczytana", label: "Odczytana", icon: "/assets/msgPanel/check.png" }
+];
+
 export default function ConversationBox() {
+	const { 
+		people, 
+		selectedPersonId, 
+		updatePersonStatus, 
+		addMessageToPerson, 
+		resetPersonMessages 
+	} = useMessages();
+	
+	const [newMessage, setNewMessage] = useState("");
+	const [showStatusDropdown, setShowStatusDropdown] = useState(false);
+	const dropdownRef = useRef<HTMLDivElement>(null);
+	
+	// Znajdź wybraną osobę
+	const selectedPerson = people.find(person => person.id === selectedPersonId);
+	const messages = selectedPerson?.messages || [];
+	
+	// Zamknij dropdown przy kliknięciu poza nim
+	useEffect(() => {
+		const handleClickOutside = (event: MouseEvent) => {
+			if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+				setShowStatusDropdown(false);
+			}
+		};
+		
+		document.addEventListener('mousedown', handleClickOutside);
+		return () => document.removeEventListener('mousedown', handleClickOutside);
+	}, []);
+	
+	// Funkcja do dodawania wiadomości użytkownika
+	const sendMessage = () => {
+		if (newMessage.trim() === "" || !selectedPersonId) return;
+		
+		const userMessage = {
+			id: Date.now(),
+			text: newMessage,
+			isOwn: true,
+			timestamp: "teraz"
+		};
+		
+		addMessageToPerson(selectedPersonId, userMessage);
+		setNewMessage("");
+		
+		// Automatyczna odpowiedź po 1-2 sekundach
+		setTimeout(() => {
+			const randomResponse = loremResponses[Math.floor(Math.random() * loremResponses.length)];
+			const systemMessage = {
+				id: Date.now() + 1,
+				text: randomResponse,
+				isOwn: false,
+				timestamp: "teraz"
+			};
+			addMessageToPerson(selectedPersonId, systemMessage);
+		}, 1000 + Math.random() * 1000); // 1-2 sekundy delay
+	};
+	
+	// Funkcja do resetu konwersacji
+	const resetConversation = () => {
+		if (!selectedPersonId) return;
+		resetPersonMessages(selectedPersonId);
+		setNewMessage("");
+	};
+	
+	// Funkcja do zmiany statusu
+	const changeStatus = (newStatus: string) => {
+		if (!selectedPersonId) return;
+		updatePersonStatus(selectedPersonId, newStatus as any);
+		setShowStatusDropdown(false);
+	};
+	
+	// Obsługa Enter w input
+	const handleKeyPress = (e: React.KeyboardEvent) => {
+		if (e.key === 'Enter') {
+			sendMessage();
+		}
+	};
+
+	// Jeśli nie ma wybranej osoby
+	if (!selectedPerson) {
+		return (
+			<Wrapper>
+				<div style={{ 
+					display: 'flex', 
+					alignItems: 'center', 
+					justifyContent: 'center', 
+					height: '100%',
+					color: '#9d9d9d',
+					fontSize: '16px',
+					textAlign: 'center'
+				}}>
+					Wybierz osobę z listy, aby zobaczyć konwersację
+				</div>
+			</Wrapper>
+		);
+	}
+
+	const currentStatus = statusOptions.find(option => option.value === selectedPerson.status);
+
 	return (
 		<Wrapper>
 			<TopBar>
 				<UserBlock>
 					<UserIcon src='/assets/msgPanel/msg.png' alt='msg' />
 					<UserDetails>
-						<Name>Dorota Przylas</Name>
-						<DateText>21.05.2025 10:21</DateText>
+						<Name>{selectedPerson.name}</Name>
+						<DateText>Ostatnia wiadomość: {selectedPerson.time}</DateText>
 					</UserDetails>
 				</UserBlock>
-				<StatusBtn>
-					<StatusIcon src='/assets/msgPanel/check.png' alt='check' />
-					Otwarte
+				<StatusBtn ref={dropdownRef} onClick={() => setShowStatusDropdown(!showStatusDropdown)}>
+					<StatusIcon src={currentStatus?.icon || '/assets/msgPanel/check.png'} alt='status' />
+					{currentStatus?.label || 'Nieznany'}
 					<ArrowIcon src='/assets/msgPanel/down_arrow.png' alt='down' />
+					{showStatusDropdown && (
+						<StatusDropdown>
+							{statusOptions.map((option) => (
+								<StatusOption 
+									key={option.value} 
+									onClick={(e) => {
+										e.stopPropagation();
+										changeStatus(option.value);
+									}}
+								>
+									<StatusOptionIcon src={option.icon} alt={option.value} />
+									{option.label}
+								</StatusOption>
+							))}
+						</StatusDropdown>
+					)}
 				</StatusBtn>
+				<ResetBtn onClick={resetConversation}>
+					🔄 Reset
+				</ResetBtn>
 			</TopBar>
 
 			<ConversationBody>
-				<DateDivider>Wczoraj</DateDivider>
+				{messages.length > 0 && <DateDivider>Dzisiaj</DateDivider>}
 
-				<MessageRow>
-					<Avatar src='/assets/msgPanel/dorota.png' alt='Dorota' />
-					<div>
-						<Bubble>
-							Dzień dobry,
-							<br />
-							Dziękujemy za ostatnie spotkanie, było nam bardzo miło!
-						</Bubble>
-						<MsgMeta>11:12</MsgMeta>
+				{messages.map((message) => (
+					<MessageRow key={message.id} own={message.isOwn}>
+						{!message.isOwn && (
+							<Avatar src='/assets/msgPanel/dorota.png' alt='System' />
+						)}
+						<div>
+							<Bubble own={message.isOwn}>
+								{message.text.split('\n').map((line, i) => (
+									<React.Fragment key={i}>
+										{line}
+										{i < message.text.split('\n').length - 1 && <br />}
+									</React.Fragment>
+								))}
+							</Bubble>
+							<MsgMeta>{message.timestamp}</MsgMeta>
+						</div>
+					</MessageRow>
+				))}
+				
+				{messages.length === 0 && (
+					<div style={{ 
+						textAlign: 'center', 
+						color: '#9d9d9d', 
+						marginTop: '50px',
+						fontSize: '14px'
+					}}>
+						Brak wiadomości. Napisz coś aby rozpocząć konwersację!
 					</div>
-				</MessageRow>
-
-				<MessageRow>
-					<Avatar src='/assets/msgPanel/dorota.png' alt='Dorota' />
-					<div>
-						<Bubble>
-							Czy możemy zorganizować w przyszłości podobne spotkanie dla
-							mieszkańców osiedla?
-						</Bubble>
-						<MsgMeta>12:51</MsgMeta>
-					</div>
-				</MessageRow>
-
-				<MessageRow own>
-					<div>
-						<Bubble own>
-							Dzień dobry, dziękujemy! Nam też było miło. W czym możemy pomóc
-							dzisiaj?
-						</Bubble>
-						<MsgMeta>teraz</MsgMeta>
-					</div>
-				</MessageRow>
-
-				<MessageRow own>
-					<div>
-						<Bubble own>
-							Oczywiście proszę tylko zaproponować termin. Na pewno uda się coś
-							ustalić.
-						</Bubble>
-						<MsgMeta>teraz</MsgMeta>
-					</div>
-				</MessageRow>
+				)}
 			</ConversationBody>
 
 			<Footer>
 				<InputBar>
-					<MsgInput placeholder='Napisz wiadomość' />
+					<MsgInput 
+						placeholder='Napisz wiadomość...' 
+						value={newMessage}
+						onChange={(e) => setNewMessage(e.target.value)}
+						onKeyPress={handleKeyPress}
+					/>
 					<FooterIcon src='/assets/msgPanel/download.png' alt='download' />
 					<FooterIcon src='/assets/msgPanel/spin.png' alt='spin' />
-					<FooterIcon src='/assets/msgPanel/send_gray.png' alt='send' />
+					<FooterIcon 
+						src='/assets/msgPanel/send_gray.png' 
+						alt='send' 
+						onClick={sendMessage}
+						style={{ cursor: 'pointer' }}
+					/>
 				</InputBar>
 			</Footer>
 		</Wrapper>

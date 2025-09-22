@@ -410,15 +410,22 @@ export default function DocumentListBox() {
 	};
 
 	// Funkcja do usuwania całej paczki
-	const handleDeleteBatch = async (batchId: string) => {
+	const handleDeleteBatch = (batchId: string) => {
 		if (!selectedEstateId) return;
-		try {
-			await deleteBatch(batchId);
-			fetchEstateDocuments(selectedEstateId);
-			showToast({ type: "success", message: "Paczka dokumentów została usunięta." });
-		} catch (err: any) {
-			showToast({ type: "error", message: err.message || "Błąd usuwania paczki dokumentów." });
-		}
+		
+		showToast({
+			type: "confirm",
+			message: "Czy na pewno chcesz usunąć całą paczkę dokumentów?",
+			onConfirm: async () => {
+				try {
+					await deleteBatch(batchId);
+					fetchEstateDocuments(selectedEstateId);
+					showToast({ type: "success", message: "Paczka dokumentów została usunięta." });
+				} catch (err: any) {
+					showToast({ type: "error", message: err.message || "Błąd usuwania paczki dokumentów." });
+				}
+			}
+		});
 	};
 
 	// Funkcja renderowania pojedynczego dokumentu
@@ -562,25 +569,39 @@ export default function DocumentListBox() {
 	const filteredIndividualDocs = sortDocuments(filterDocuments((estateDocuments || [])
 		.filter(doc => !!doc.resident)));
 
-	const handleDeleteEstateDoc = async (id: string) => {
+	const handleDeleteEstateDoc = (id: string) => {
 		if (!selectedEstateId) return;
-		try {
-			await deleteDocument(id, "estate");
-			fetchEstateDocuments(selectedEstateId);
-			showToast({ type: "success", message: "Dokument został usunięty." });
-		} catch (e: any) {
-			showToast({ type: "error", message: e?.message || "Błąd usuwania dokumentu" });
-		}
+		
+		showToast({
+			type: "confirm",
+			message: "Czy na pewno chcesz usunąć ten dokument?",
+			onConfirm: async () => {
+				try {
+					await deleteDocument(id, "estate");
+					fetchEstateDocuments(selectedEstateId);
+					showToast({ type: "success", message: "Dokument został usunięty." });
+				} catch (e: any) {
+					showToast({ type: "error", message: e?.message || "Błąd usuwania dokumentu" });
+				}
+			}
+		});
 	};
-	const handleDeleteResidentDoc = async (id: string) => {
+	const handleDeleteResidentDoc = (id: string) => {
 		if (!selectedEstateId) return;
-		try {
-			await deleteDocument(id, "estate");
-			fetchEstateDocuments(selectedEstateId);
-			showToast({ type: "success", message: "Dokument został usunięty." });
-		} catch (e: any) {
-			showToast({ type: "error", message: e?.message || "Błąd usuwania dokumentu" });
-		}
+		
+		showToast({
+			type: "confirm",
+			message: "Czy na pewno chcesz usunąć ten dokument?",
+			onConfirm: async () => {
+				try {
+					await deleteDocument(id, "estate");
+					fetchEstateDocuments(selectedEstateId);
+					showToast({ type: "success", message: "Dokument został usunięty." });
+				} catch (e: any) {
+					showToast({ type: "error", message: e?.message || "Błąd usuwania dokumentu" });
+				}
+			}
+		});
 	};
 
 	return (

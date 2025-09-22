@@ -375,18 +375,37 @@ export const MainProvider = ({ children }: { children: ReactNode }) => {
 				setOrganisations(orgs);
 				console.log("[EC] Ustawiam organisations (tylko moje!):", orgs);
 
-				// WYBÓR PIERWSZEGO
+				// WYBÓR ORGANIZACJI (przywróć z localStorage lub wybierz pierwszą)
 				if (orgs.length > 0) {
-					setSelectedOrganisationId(orgs[0]._id);
-					if (orgs[0].estates?.length > 0) {
-						setSelectedEstateId(orgs[0].estates[0]._id);
-						console.log(
-							"[EC] Ustawiam selectedEstateId:",
-							orgs[0].estates[0]._id
-						);
+					const savedOrgId = typeof window !== "undefined" 
+						? localStorage.getItem("selectedOrganisationId") 
+						: null;
+					
+					// Sprawdź czy zapisana organizacja nadal istnieje w liście
+					const savedOrgExists = savedOrgId && orgs.find(org => org._id === savedOrgId);
+					const selectedOrg = savedOrgExists 
+						? orgs.find(org => org._id === savedOrgId)!
+						: orgs[0];
+					
+					setSelectedOrganisationId(selectedOrg._id);
+					console.log("[EC] Wybieram organizację:", selectedOrg._id, savedOrgExists ? "(z localStorage)" : "(pierwszą)");
+					
+					if (selectedOrg.estates?.length > 0) {
+						const savedEstateId = typeof window !== "undefined" 
+							? localStorage.getItem("selectedEstateId") 
+							: null;
+						
+						// Sprawdź czy zapisane osiedle nadal istnieje w wybranej organizacji
+						const savedEstateExists = savedEstateId && selectedOrg.estates.find(estate => estate._id === savedEstateId);
+						const selectedEstate = savedEstateExists 
+							? selectedOrg.estates.find(estate => estate._id === savedEstateId)!
+							: selectedOrg.estates[0];
+						
+						setSelectedEstateId(selectedEstate._id);
+						console.log("[EC] Wybieram osiedle:", selectedEstate._id, savedEstateExists ? "(z localStorage)" : "(pierwsze)");
 					} else {
 						setSelectedEstateId(null);
-						console.log("[EC] Brak osiedli w pierwszej org");
+						console.log("[EC] Brak osiedli w wybranej org");
 					}
 				}
 

@@ -376,6 +376,7 @@ export const YourEstate: React.FC = () => {
 		error,
 		documents,
 		forceReload,
+		updateEstate,
 	} = useMain();
 
 	const { showToast } = useToastContext();
@@ -449,22 +450,15 @@ export const YourEstate: React.FC = () => {
 	const handleSave = async () => {
 		if (!estate) return;
 		try {
-			await fetch(`/api/estates/${estate._id}`, {
-				method: "PATCH",
-				headers: {
-					"Content-Type": "application/json",
-				},
-				body: JSON.stringify({
-					name: editData.name,
-					bankAccountNumber: editData.bankAccountNumber,
-					rentDueDate: editData.rentDueDate,
-					numberOfFlats: Number(editData.numberOfFlats),
-					address: editData.address,
-				}),
+			await updateEstate(estate._id, {
+				name: editData.name,
+				bankAccountNumber: editData.bankAccountNumber,
+				rentDueDate: editData.rentDueDate,
+				numberOfFlats: Number(editData.numberOfFlats),
+				address: editData.address,
 			});
 			showToast({ type: "success", message: "Osiedle zaktualizowane" });
 			setEdit(false);
-			forceReload();
 		} catch (e) {
 			showToast({ type: "error", message: "Błąd zapisu danych osiedla" });
 		}
@@ -534,7 +528,7 @@ export const YourEstate: React.FC = () => {
 									</CancelButton>
 								</div>
 							) : (
-								<CardEditButton onClick={() => router.push("/allEstates")}>
+								<CardEditButton onClick={() => setEdit(true)}>
 									Edytuj dane osiedla
 								</CardEditButton>
 							)}
