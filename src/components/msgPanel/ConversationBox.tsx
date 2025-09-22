@@ -294,7 +294,7 @@ export default function ConversationBox() {
 	
 	const [newMessage, setNewMessage] = useState("");
 	const [showStatusDropdown, setShowStatusDropdown] = useState(false);
-	const dropdownRef = useRef<HTMLDivElement>(null);
+	const dropdownRef = useRef<HTMLButtonElement>(null);
 	
 	// Znajdź wybraną osobę
 	const selectedPerson = people.find(person => person.id === selectedPersonId);
