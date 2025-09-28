@@ -278,14 +278,26 @@ export default function AddResidentDocumentModal({
 
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
-		if (!title || !file || !estateId || selected.length === 0) {
-			setError("Wypełnij wszystkie pola i wybierz mieszkańców!");
+		if (!title.trim()) {
+			setError("Wprowadź nazwę dokumentu!");
+			return;
+		}
+		if (!file) {
+			setError("Wybierz plik dokumentu!");
+			return;
+		}
+		if (selected.length === 0) {
+			setError("Wybierz mieszkańców!");
+			return;
+		}
+		if (!estateId) {
+			setError("Brak identyfikatora osiedla!");
 			return;
 		}
 		setError(null);
 		try {
 			for (const id of selected)
-				await uploadDocument({ file, estateId, title, residentId: id });
+				await uploadDocument({ file, estateId, title: title.trim(), residentId: id });
 			onSuccess?.();
 			onClose();
 			showToast({ type: "success", message: "Dokument dodany." });

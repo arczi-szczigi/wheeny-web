@@ -377,11 +377,23 @@ export default function AddIndividualDocumentModal({
 			return;
 		}
 
-		const validDocuments = documents.filter(doc => doc.title && doc.file);
-		if (validDocuments.length === 0) {
+		// Sprawdź czy wszystkie dokumenty mają wypełnione wymagane pola
+		const documentsWithFiles = documents.filter(doc => doc.file);
+		
+		if (documentsWithFiles.length === 0) {
 			setError("Dodaj przynajmniej jeden dokument!");
 			return;
 		}
+
+		// Sprawdź czy dokumenty z plikami mają wprowadzone nazwy
+		const documentsWithoutTitles = documentsWithFiles.filter(doc => !doc.title || doc.title.trim() === "");
+		
+		if (documentsWithoutTitles.length > 0) {
+			setError("Wprowadź nazwę dla wszystkich dodanych dokumentów!");
+			return;
+		}
+
+		const validDocuments = documentsWithFiles.filter(doc => doc.title && doc.title.trim() !== "");
 
 		setError(null);
 		try {
@@ -390,7 +402,7 @@ export default function AddIndividualDocumentModal({
 					await uploadDocument({
 						file: doc.file,
 						estateId: estateId!,
-						title: doc.title,
+						title: doc.title.trim(),
 						residentId: selectedResident,
 					});
 				}

@@ -9,9 +9,9 @@ import TopPanelChooseEstate from "../../components/panelEstate/TopPanelChooseEst
 import SearchBarPanelEstate from "../../components/panelEstate/SearchBarPanelEstate";
 import { CardEstate } from "../../components/allEstates/CardEstate";
 import { useMain } from "@/context/EstateContext";
+import { useToastContext } from "@/components/toast/ToastContext";
 import type { Estate } from "@/context/EstateContext";
 import AddEstateModal from "@/components/modal/AddEstateModal";
-import EditEstateModal from "@/components/modal/EditEstateModal";
 
 // --- STYLES ---
 const PageContainer = styled.div`
@@ -73,9 +73,8 @@ type SortValue = "az" | "za";
 
 export default function AllEstatePage() {
 	const router = useRouter();
+	const { showToast } = useToastContext();
 	const [modalOpen, setModalOpen] = useState(false);
-	const [editModalOpen, setEditModalOpen] = useState(false);
-	const [editingEstateId, setEditingEstateId] = useState<string | null>(null);
 
 	// Context – pobranie wybranej organizacji i jej osiedli
 	const { organisations, selectedOrganisationId, selectedEstateId, loading, error, updateEstate, deleteEstate, setSelectedEstateId } = useMain();
@@ -120,7 +119,6 @@ export default function AllEstatePage() {
 
 	// --- HANDLERS ---
 	const handleEstateSuccess = () => setModalOpen(false);
-	const handleEditSuccess = () => setEditModalOpen(false);
 	
 	const handleSearch = (val: string) => setSearchValue(val);
 	const handleFilterChange = (val: FilterStatus) => setFilterStatus(val);
@@ -132,18 +130,33 @@ export default function AllEstatePage() {
 	};
 
 	const handleEditEstate = async (estateId: string) => {
-		setEditingEstateId(estateId);
-		setEditModalOpen(true);
+		setSelectedEstateId(estateId);
+		router.push("/estateInfo");
 	};
 
 	const handleDeleteEstate = async (estateId: string) => {
-		if (window.confirm("Czy na pewno chcesz usunąć to osiedle?")) {
-			try {
-				await deleteEstate(estateId);
-			} catch (error) {
-				console.error("Błąd usuwania osiedla:", error);
-			}
-		}
+		showToast({
+			type: "confirm",
+			message: "Czy na pewno chcesz usunąć to osiedle?",
+			onConfirm: async () => {
+				try {
+					await deleteEstate(estateId);
+					showToast({
+						type: "success",
+						message: "Osiedle zostało usunięte",
+					});
+				} catch (error) {
+					console.error("Błąd usuwania osiedla:", error);
+					showToast({
+						type: "error",
+						message: "Błąd podczas usuwania osiedla",
+					});
+				}
+			},
+			onCancel: () => {
+				// Użytkownik anulował
+			},
+		});
 	};
 
 	return (
@@ -196,12 +209,6 @@ export default function AllEstatePage() {
 						onSuccess={handleEstateSuccess}
 					/>
 
-					<EditEstateModal
-						open={editModalOpen}
-						onClose={() => setEditModalOpen(false)}
-						onSuccess={handleEditSuccess}
-						estateId={editingEstateId || undefined}
-					/>
 
 					<EstatesList>
 						{loading ? (

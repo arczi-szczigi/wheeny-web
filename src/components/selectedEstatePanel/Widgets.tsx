@@ -2,6 +2,7 @@
 
 import React from "react";
 import styled from "styled-components";
+import { useToastContext } from "@/components/toast/ToastContext";
 
 // Kontener główny na całość widgetów
 const Wrapper = styled.div`
@@ -102,22 +103,29 @@ const WidgetButton = styled.button`
 	}
 `;
 
-const widgets = [
-	{
-		title: "Poinformuj mieszkańców o bieżących sprawach",
-		button: "Dodaj Ogłoszenie",
-		img: "/assets/selectedEstate/father.png",
-		onClick: () => alert("Dodaj Ogłoszenie kliknięte!"),
-	},
-	{
-		title: "Utwórz głosowanie dla mieszkańców",
-		button: "Utwórz Głosowanie",
-		img: "/assets/selectedEstate/mom.png",
-		onClick: () => alert("Utwórz Głosowanie kliknięte!"),
-	},
-];
-
 export default function WidgetsBox() {
+	const { showToast } = useToastContext();
+
+	const widgets = [
+		{
+			title: "Poinformuj mieszkańców o bieżących sprawach",
+			button: "Dodaj Ogłoszenie",
+			img: "/assets/selectedEstate/father.png",
+			onClick: () => showToast({
+				type: "success",
+				message: "Dodaj Ogłoszenie kliknięte!",
+			}),
+		},
+		{
+			title: "Utwórz głosowanie dla mieszkańców",
+			button: "Utwórz Głosowanie",
+			img: "/assets/selectedEstate/mom.png",
+			onClick: () => showToast({
+				type: "success",
+				message: "Utwórz Głosowanie kliknięte!",
+			}),
+		},
+	];
 	return (
 		<Wrapper>
 			<Content>

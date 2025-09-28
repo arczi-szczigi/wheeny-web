@@ -193,8 +193,16 @@ export default function AddEstateDocumentModal({
 
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
-		if (!title.trim() || !file || !selectedEstateId) {
-			setError("Wypełnij wszystkie pola!");
+		if (!title.trim()) {
+			setError("Wprowadź nazwę dokumentu!");
+			return;
+		}
+		if (!file) {
+			setError("Wybierz plik dokumentu!");
+			return;
+		}
+		if (!selectedEstateId) {
+			setError("Brak identyfikatora osiedla!");
 			return;
 		}
 		setError(null);
@@ -205,7 +213,7 @@ export default function AddEstateDocumentModal({
 			const formData = new FormData();
 			formData.append("file", file);
 			formData.append("estateId", selectedEstateId);
-			formData.append("title", title);
+			formData.append("title", title.trim());
 
 			const res = await fetch(
 				`${process.env.NEXT_PUBLIC_API_URL}/documents/upload`,

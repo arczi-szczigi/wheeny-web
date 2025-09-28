@@ -676,10 +676,24 @@ export default function EstateDocumentsModal({ open, onClose, estateId }: Estate
 	// Upload document
 	const handleUpload = async (e: React.FormEvent) => {
 		e.preventDefault();
-		if (!uploadTitle.trim() || !uploadFile || !estateId) {
+		if (!uploadTitle.trim()) {
 			showToast({
 				type: "error",
-				message: "Wypełnij wszystkie pola!",
+				message: "Wprowadź nazwę dokumentu!",
+			});
+			return;
+		}
+		if (!uploadFile) {
+			showToast({
+				type: "error",
+				message: "Wybierz plik dokumentu!",
+			});
+			return;
+		}
+		if (!estateId) {
+			showToast({
+				type: "error",
+				message: "Brak identyfikatora osiedla!",
 			});
 			return;
 		}
@@ -690,7 +704,7 @@ export default function EstateDocumentsModal({ open, onClose, estateId }: Estate
 			const formData = new FormData();
 			formData.append("file", uploadFile);
 			formData.append("estateId", estateId);
-			formData.append("title", uploadTitle);
+			formData.append("title", uploadTitle.trim());
 
 			const response = await fetch(
 				`${process.env.NEXT_PUBLIC_API_URL}/documents/upload`,

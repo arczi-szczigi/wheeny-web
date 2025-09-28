@@ -108,7 +108,7 @@ const DropItem = styled.li<{ $selected?: boolean }>`
 
 // --- TYPES ---
 export type FilterStatus = "all" | "withGarage" | "withoutGarage" | "withStorage" | "withoutStorage" | "withConsent" | "withoutConsent";
-export type SortValue = "flatNumber" | "name" | "area" | "flatNumberDesc" | "nameDesc" | "areaDesc" | "numerical" | "numericalDesc";
+export type SortValue = "name" | "area" | "nameDesc" | "areaDesc" | "numerical" | "numericalDesc";
 
 // --- PROPS ---
 export interface SearchBarResidentsProps {
@@ -134,8 +134,6 @@ const FILTER_OPTIONS: { value: FilterStatus; label: string }[] = [
 const SORT_OPTIONS: { value: SortValue; label: string }[] = [
 	{ value: "numerical", label: "Numer mieszkania 1-999" },
 	{ value: "numericalDesc", label: "Numer mieszkania 999-1" },
-	{ value: "flatNumber", label: "Numer mieszkania A-Z" },
-	{ value: "flatNumberDesc", label: "Numer mieszkania Z-A" },
 	{ value: "name", label: "Imię i nazwisko A-Z" },
 	{ value: "nameDesc", label: "Imię i nazwisko Z-A" },
 	{ value: "area", label: "Metraż rosnąco" },

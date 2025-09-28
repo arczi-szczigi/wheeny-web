@@ -204,6 +204,21 @@ const fields: Field[] = [
 	{ name: "buildingNumber", icon: <FiHome />, placeholder: "Nr budynku" },
 ];
 
+// Helper function to clean up email string from potential encoding issues
+const cleanEmail = (email: string): string => {
+	if (!email) return '';
+	
+	// Remove any control characters, invisible characters, and normalize
+	const cleaned = email
+		.replace(/[\u0000-\u001F\u007F-\u009F]/g, '') // Remove control characters
+		.replace(/[\u200B-\u200D\uFEFF]/g, '') // Remove zero-width spaces
+		.normalize('NFKC') // Normalize unicode
+		.trim();
+	
+	console.log('Email cleaning - original:', email, 'cleaned:', cleaned);
+	return cleaned;
+};
+
 const validateEmail = (v: string) =>
 	/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim());
 const validateZip = (v: string) => /^\d{2}-\d{3}$/.test(v.trim());
@@ -232,9 +247,13 @@ export default function ModalEditOrganisation({
 
 	useEffect(() => {
 		if (open) {
+			console.log("ModalEditOrganisation - organisation.email:", organisation.email);
+			console.log("ModalEditOrganisation - organisation.email length:", organisation.email?.length);
+			console.log("ModalEditOrganisation - organisation.email chars:", [...(organisation.email || "")]);
+			
 			setForm({
 				companyName: organisation.companyName,
-				email: organisation.email,
+				email: cleanEmail(organisation.email),
 				phone: organisation.phone,
 				city: organisation.address.city,
 				zipCode: organisation.address.zipCode,
@@ -263,6 +282,13 @@ export default function ModalEditOrganisation({
 		const { name, value } = e.target as HTMLInputElement & {
 			name: keyof FormState;
 		};
+		
+		if (name === 'email') {
+			console.log("HandleChange email - new value:", value);
+			console.log("HandleChange email - new value length:", value.length);
+			console.log("HandleChange email - new value chars:", [...value]);
+		}
+		
 		setForm(f => ({ ...f, [name]: value }));
 		setErrors(e => ({ ...e, [name]: "" }));
 	};

@@ -342,6 +342,13 @@ export default function AddIndividualDocumentAutomationModal({
 			return;
 		}
 
+		// Sprawdź czy wszystkie pliki mają wprowadzone nazwy dokumentów
+		const filesWithoutTitles = validFiles.filter(item => !item.title || item.title.trim() === "");
+		if (filesWithoutTitles.length > 0) {
+			setError("Wprowadź nazwę dla wszystkich dokumentów!");
+			return;
+		}
+
 		setError(null);
 		setSubmitting(true);
 		

@@ -6,6 +6,7 @@ import React, { useState, useMemo } from "react";
 import styled from "styled-components";
 import ResidentsModal from "@/components/modal/ResidentsModal";
 import { Resident } from "@/context/AnnouncementContext";
+import { useToastContext } from "@/components/toast/ToastContext";
 import SearchBarResidents, { FilterStatus, SortValue } from "./SearchBarResidents";
 
 interface ResidentsInfoListBoxProps {
@@ -167,6 +168,7 @@ export const ResidentsInfoListBox: React.FC<ResidentsInfoListBoxProps> = ({
 	editResident,
 	deleteResident,
 }) => {
+	const { showToast } = useToastContext();
 	const [modalOpen, setModalOpen] = useState(false);
 	const [editId, setEditId] = useState<string | null>(null);
 	const [editData, setEditData] = useState<Partial<Resident>>({});
@@ -227,10 +229,6 @@ export const ResidentsInfoListBox: React.FC<ResidentsInfoListBoxProps> = ({
 						return parseApartmentNumber(a.flatNumber) - parseApartmentNumber(b.flatNumber);
 					case "numericalDesc":
 						return parseApartmentNumber(b.flatNumber) - parseApartmentNumber(a.flatNumber);
-					case "flatNumber":
-						return a.flatNumber.localeCompare(b.flatNumber, "pl");
-					case "flatNumberDesc":
-						return b.flatNumber.localeCompare(a.flatNumber, "pl");
 					case "name":
 						return (a.name || "").localeCompare(b.name || "", "pl");
 					case "nameDesc":
@@ -246,10 +244,22 @@ export const ResidentsInfoListBox: React.FC<ResidentsInfoListBoxProps> = ({
 	}, [residents, searchValue, filterStatus, sortValue]);
 
 	const handleDelete = async (id: string) => {
-		if (!confirm("Na pewno usunąć mieszkańca?")) return;
-		setDeleteLoadingId(id);
-		await deleteResident(id, estateId);
-		setDeleteLoadingId(null);
+		showToast({
+			type: "confirm",
+			message: "Na pewno usunąć mieszkańca?",
+			onConfirm: async () => {
+				setDeleteLoadingId(id);
+				await deleteResident(id, estateId);
+				setDeleteLoadingId(null);
+				showToast({
+					type: "success",
+					message: "Mieszkaniec został usunięty",
+				});
+			},
+			onCancel: () => {
+				// Użytkownik anulował
+			},
+		});
 	};
 
 	const handleEditSave = async () => {
@@ -298,8 +308,6 @@ export const ResidentsInfoListBox: React.FC<ResidentsInfoListBoxProps> = ({
 							{
 								numerical: "Numer mieszkania 1-999",
 								numericalDesc: "Numer mieszkania 999-1",
-								flatNumber: "Numer mieszkania A-Z",
-								flatNumberDesc: "Numer mieszkania Z-A",
 								name: "Imię i nazwisko A-Z",
 								nameDesc: "Imię i nazwisko Z-A",
 								area: "Metraż rosnąco",

@@ -334,17 +334,17 @@ export default function WasteModal({
 					</div>
 					<FileRow>
 						<label style={{ fontSize: 15, marginBottom: 5, display: "block" }}>
-							Dodaj plik informacyjny (opcjonalnie, PDF lub obrazek)
+							Dodaj plik informacyjny (opcjonalnie, PDF, obrazek lub Excel)
 						</label>
 						<FileInputWrap>
 							<AttachIcon src='/assets/trash/attach.svg' alt='attach' />
 							<span style={{ color: "#999", fontSize: 15, flex: 1 }}>
-								{file ? file.name : "Dodaj plik PDF lub obrazek"}
+								{file ? file.name : "Dodaj plik PDF, obrazek lub Excel"}
 							</span>
 							<HiddenFileInput
 								ref={fileInputRef}
 								type='file'
-								accept='application/pdf,image/*'
+								accept='application/pdf,image/*,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
 								onChange={handleFileChange}
 							/>
 							<button

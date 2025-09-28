@@ -369,9 +369,25 @@ export const MainProvider = ({ children }: { children: ReactNode }) => {
 
 				// ORGANISATIONS (tylko managera!)
 				const orgRes = await fetch(`${API_URL}/organisations/my`, {
-					headers: { Authorization: `Bearer ${token}` },
+					headers: { 
+						'Authorization': `Bearer ${token}`,
+						'Content-Type': 'application/json',
+						'Accept': 'application/json; charset=utf-8'
+					},
 				});
+				
+				console.log("[EC] Response headers:", Object.fromEntries(orgRes.headers.entries()));
+				console.log("[EC] Response content-type:", orgRes.headers.get('content-type'));
+				
 				const orgs: Organisation[] = orgRes.ok ? await orgRes.json() : [];
+				
+				// Debug email fields
+				orgs.forEach((org, index) => {
+					console.log(`[EC] Organisation ${index} email:`, org.email);
+					console.log(`[EC] Organisation ${index} email length:`, org.email?.length);
+					console.log(`[EC] Organisation ${index} email chars:`, [...(org.email || "")]);
+				});
+				
 				setOrganisations(orgs);
 				console.log("[EC] Ustawiam organisations (tylko moje!):", orgs);
 

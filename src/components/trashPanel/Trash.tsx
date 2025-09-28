@@ -5,6 +5,7 @@ import React, { useState, useEffect } from "react";
 import styled from "styled-components";
 import { useMain } from "@/context/EstateContext";
 import { useAnnouncement } from "@/context/AnnouncementContext";
+import { useToastContext } from "@/components/toast/ToastContext";
 import WasteModal from "../modal/WasteModal";
 import type { GarbageCalendar } from "@/context/AnnouncementContext";
 import SearchBarWaste, { FilterStatus, SortValue } from "./SearchBarWaste";
@@ -182,6 +183,7 @@ const ActionBtn = styled.button<{ danger?: boolean }>`
 // === KOMPONENT ===
 export default function Trash() {
 	const { selectedEstateId } = useMain();
+	const { showToast } = useToastContext();
 	const {
 		garbageCalendars,
 		loading,
@@ -272,9 +274,20 @@ export default function Trash() {
 	};
 	const handleDelete = async (id: string) => {
 		if (selectedEstateId) {
-			if (window.confirm("Czy na pewno usunąć ten kalendarz?")) {
-				await deleteGarbageCalendar(id, selectedEstateId);
-			}
+			showToast({
+				type: "confirm",
+				message: "Czy na pewno usunąć ten kalendarz?",
+				onConfirm: async () => {
+					await deleteGarbageCalendar(id, selectedEstateId);
+					showToast({
+						type: "success",
+						message: "Kalendarz został usunięty",
+					});
+				},
+				onCancel: () => {
+					// Użytkownik anulował
+				},
+			});
 		}
 	};
 

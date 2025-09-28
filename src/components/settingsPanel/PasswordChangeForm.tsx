@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import styled from "styled-components";
+import { useToastContext } from "@/components/toast/ToastContext";
 
 const Form = styled.form`
 	display: flex;
@@ -98,39 +99,14 @@ const Button = styled.button<{ variant?: 'primary' | 'secondary' | 'danger' }>`
 	}}
 `;
 
-const Message = styled.div<{ type: 'success' | 'error' }>`
-	padding: 12px 16px;
-	border-radius: 8px;
-	font-size: 14px;
-	font-family: Roboto, sans-serif;
-	font-weight: 400;
-	letter-spacing: 0.7px;
-	
-	${({ type }) => {
-		switch (type) {
-			case 'success':
-				return `
-					background: #d4edda;
-					color: #155724;
-					border: 1px solid #c3e6cb;
-				`;
-			case 'error':
-				return `
-					background: #f8d7da;
-					color: #721c24;
-					border: 1px solid #f5c6cb;
-				`;
-		}
-	}}
-`;
 
 export const PasswordChangeForm: React.FC = () => {
+	const { showToast } = useToastContext();
 	const [formData, setFormData] = useState({
 		currentPassword: '',
 		newPassword: '',
 		confirmPassword: ''
 	});
-	const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 	const [isLoading, setIsLoading] = useState(false);
 
 	const handleInputChange = (field: string, value: string) => {
@@ -143,17 +119,22 @@ export const PasswordChangeForm: React.FC = () => {
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
 		setIsLoading(true);
-		setMessage(null);
 
 		// Walidacja
 		if (formData.newPassword !== formData.confirmPassword) {
-			setMessage({ type: 'error', text: 'Nowe hasła nie są identyczne' });
+			showToast({
+				type: 'error',
+				message: 'Nowe hasła nie są identyczne'
+			});
 			setIsLoading(false);
 			return;
 		}
 
 		if (formData.newPassword.length < 8) {
-			setMessage({ type: 'error', text: 'Nowe hasło musi mieć co najmniej 8 znaków' });
+			showToast({
+				type: 'error',
+				message: 'Nowe hasło musi mieć co najmniej 8 znaków'
+			});
 			setIsLoading(false);
 			return;
 		}
@@ -162,14 +143,20 @@ export const PasswordChangeForm: React.FC = () => {
 			// TODO: Implementacja API call
 			await new Promise(resolve => setTimeout(resolve, 1000)); // Symulacja API call
 			
-			setMessage({ type: 'success', text: 'Hasło zostało zmienione pomyślnie' });
+			showToast({
+				type: 'success',
+				message: 'Hasło zostało zmienione pomyślnie'
+			});
 			setFormData({
 				currentPassword: '',
 				newPassword: '',
 				confirmPassword: ''
 			});
 		} catch (error) {
-			setMessage({ type: 'error', text: 'Wystąpił błąd podczas zmiany hasła' });
+			showToast({
+				type: 'error',
+				message: 'Wystąpił błąd podczas zmiany hasła'
+			});
 		} finally {
 			setIsLoading(false);
 		}
@@ -181,17 +168,10 @@ export const PasswordChangeForm: React.FC = () => {
 			newPassword: '',
 			confirmPassword: ''
 		});
-		setMessage(null);
 	};
 
 	return (
 		<Form onSubmit={handleSubmit}>
-			{message && (
-				<Message type={message.type}>
-					{message.text}
-				</Message>
-			)}
-			
 			<FormGroup>
 				<Label htmlFor="currentPassword">Aktualne hasło</Label>
 				<Input

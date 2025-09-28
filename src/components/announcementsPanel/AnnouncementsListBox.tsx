@@ -6,6 +6,7 @@ import AddAnnouncementModal from "../modal/AddAnnouncementModal";
 import EditAnnouncementModal from "../modal/EditAnnouncementModal";
 import { useAnnouncement } from "@/context/AnnouncementContext";
 import { useMain } from "@/context/EstateContext";
+import { useToastContext } from "../toast/ToastContext";
 import SearchBarAnnouncement, { FilterStatus, SortValue } from "./SearchBarAnnouncement";
 
 const Container = styled.div`
@@ -187,6 +188,7 @@ export default function AnnouncmentsListBox() {
 		fetchAnnouncements,
 		deleteAnnouncement,
 	} = useAnnouncement();
+	const { showToast } = useToastContext();
 
 	const [search, setSearch] = useState("");
 	const [filterStatus, setFilterStatus] = useState<FilterStatus>("all");
@@ -368,13 +370,31 @@ export default function AnnouncmentsListBox() {
 											}}>
 											Edytuj ogłoszenie
 										</EditButton>
-										<DeleteButton
-											onClick={() => {
-												if (selectedEstateId)
-													deleteAnnouncement(row._id, selectedEstateId);
-											}}>
-											Usuń ogłoszenie
-										</DeleteButton>
+											<DeleteButton
+												onClick={() => {
+													if (!selectedEstateId) return;
+													
+													showToast({
+														type: "confirm",
+														message: `Czy na pewno chcesz usunąć ogłoszenie "${row.title}"?`,
+														onConfirm: async () => {
+															try {
+																await deleteAnnouncement(row._id, selectedEstateId);
+																showToast({
+																	type: "success",
+																	message: "Ogłoszenie zostało usunięte"
+																});
+															} catch (error) {
+																showToast({
+																	type: "error",
+																	message: "Błąd podczas usuwania ogłoszenia"
+																});
+															}
+														}
+													});
+												}}>
+													Usuń ogłoszenie
+												</DeleteButton>
 									</ActionsCell>
 								</TableRow>
 							))

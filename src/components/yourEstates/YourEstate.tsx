@@ -7,6 +7,7 @@ import { useMain } from "@/context/EstateContext";
 import type { Estate } from "@/context/EstateContext";
 import { useToastContext } from "@/components/toast/ToastContext";
 import EstateDocumentsModal from "../modal/EstateDocumentsModal";
+import EditEstateModal from "../modal/EditEstateModal";
 
 // --- Styled Components ---
 const Wrapper = styled.div`
@@ -131,41 +132,6 @@ const CardEditButton = styled.button`
 	}
 `;
 
-const SaveButton = styled.button`
-	padding: 9px 20px;
-	background: #32b471;
-	border-radius: 30px;
-	color: #fff;
-	font-size: 10px;
-	font-family: Roboto, sans-serif;
-	font-weight: 400;
-	letter-spacing: 0.5px;
-	border: none;
-	cursor: pointer;
-	transition: opacity 0.2s;
-	&:hover {
-		opacity: 0.9;
-	}
-	margin-left: 10px;
-`;
-
-const CancelButton = styled.button`
-	padding: 9px 20px;
-	background: #cccccc;
-	border-radius: 30px;
-	color: #202020;
-	font-size: 10px;
-	font-family: Roboto, sans-serif;
-	font-weight: 400;
-	letter-spacing: 0.5px;
-	border: none;
-	cursor: pointer;
-	transition: opacity 0.2s;
-	&:hover {
-		opacity: 0.9;
-	}
-	margin-left: 10px;
-`;
 
 const FormSection = styled.div`
 	background: #f3f3f3;
@@ -228,17 +194,6 @@ const FieldValue = styled.span`
 	letter-spacing: 0.5px;
 `;
 
-const FieldInput = styled.input`
-	font-size: 12px;
-	font-family: Roboto, sans-serif;
-	font-weight: 400;
-	letter-spacing: 0.5px;
-	border: none;
-	outline: none;
-	background: transparent;
-	width: 100%;
-	color: #202020;
-`;
 
 const HalfWidthColumn = styled.div`
 	flex: 1 1 0;
@@ -401,67 +356,21 @@ export const YourEstate: React.FC = () => {
 
 	// --- modal dokumentów ---
 	const [showDocumentsModal, setShowDocumentsModal] = useState(false);
+	
+	// --- modal edycji ---
+	const [showEditModal, setShowEditModal] = useState(false);
 
-	// --- tryb edycji ---
-	const [edit, setEdit] = useState(false);
-	const [editData, setEditData] = useState({
-		name: estate?.name || "",
-		bankAccountNumber: estate?.bankAccountNumber || "",
-		rentDueDate: estate?.rentDueDate || "",
-		numberOfFlats: estate?.numberOfFlats?.toString() || "",
-		address: {
-			street: estate?.address?.street || "",
-			buildingNumber: estate?.address?.buildingNumber || "",
-			city: estate?.address?.city || "",
-			zipCode: estate?.address?.zipCode || "",
-		},
-	});
-
-	useEffect(() => {
-		if (!estate) return;
-		setEditData({
-			name: estate.name || "",
-			bankAccountNumber: estate.bankAccountNumber || "",
-			rentDueDate: estate.rentDueDate || "",
-			numberOfFlats: estate.numberOfFlats?.toString() || "",
-			address: {
-				street: estate.address?.street || "",
-				buildingNumber: estate.address?.buildingNumber || "",
-				city: estate.address?.city || "",
-				zipCode: estate.address?.zipCode || "",
-			},
-		});
-	}, [estate]);
-
-	const handleInput = (field: string, value: string) => {
-		if (["street", "buildingNumber", "city", "zipCode"].includes(field)) {
-			setEditData(prev => ({
-				...prev,
-				address: { ...prev.address, [field]: value },
-			}));
-		} else {
-			setEditData(prev => ({
-				...prev,
-				[field]: value,
-			}));
-		}
+	// --- obsługa edycji ---
+	const handleEditClick = () => {
+		setShowEditModal(true);
 	};
 
-	const handleSave = async () => {
-		if (!estate) return;
-		try {
-			await updateEstate(estate._id, {
-				name: editData.name,
-				bankAccountNumber: editData.bankAccountNumber,
-				rentDueDate: editData.rentDueDate,
-				numberOfFlats: Number(editData.numberOfFlats),
-				address: editData.address,
-			});
-			showToast({ type: "success", message: "Osiedle zaktualizowane" });
-			setEdit(false);
-		} catch (e) {
-			showToast({ type: "error", message: "Błąd zapisu danych osiedla" });
-		}
+	const handleEditSuccess = () => {
+		setShowEditModal(false);
+		showToast({
+			message: "Dane osiedla zostały zaktualizowane",
+			type: "success"
+		});
 	};
 
 	const handleVerify = async () => {
@@ -520,18 +429,9 @@ export const YourEstate: React.FC = () => {
 					<Card>
 						<CardHeaderRow>
 							<CardTitle>Dane Osiedla</CardTitle>
-							{edit ? (
-								<div>
-									<SaveButton onClick={handleSave}>Zapisz</SaveButton>
-									<CancelButton onClick={() => setEdit(false)}>
-										Anuluj
-									</CancelButton>
-								</div>
-							) : (
-								<CardEditButton onClick={() => setEdit(true)}>
-									Edytuj dane osiedla
-								</CardEditButton>
-							)}
+							<CardEditButton onClick={handleEditClick}>
+								Edytuj dane osiedla
+							</CardEditButton>
 						</CardHeaderRow>
 
 						<FormSection>
@@ -545,14 +445,7 @@ export const YourEstate: React.FC = () => {
 										<FieldLabel>Nazwa osiedla</FieldLabel>
 									</FieldLabelRow>
 									<FieldValueBox>
-										{edit ? (
-											<FieldInput
-												value={editData.name}
-												onChange={e => handleInput("name", e.target.value)}
-											/>
-										) : (
-											<FieldValue>{estate.name || "-"}</FieldValue>
-										)}
+										<FieldValue>{estate.name || "-"}</FieldValue>
 									</FieldValueBox>
 								</FieldColumn>
 							</FieldsRow>
@@ -567,31 +460,12 @@ export const YourEstate: React.FC = () => {
 										<FieldLabel>Ulica</FieldLabel>
 									</FieldLabelRow>
 									<FieldValueBox>
-										{edit ? (
-											<>
-												<FieldInput
-													placeholder='Ulica'
-													style={{ width: "70%" }}
-													value={editData.address.street}
-													onChange={e => handleInput("street", e.target.value)}
-												/>
-												<FieldInput
-													placeholder='Nr'
-													style={{ width: "25%" }}
-													value={editData.address.buildingNumber}
-													onChange={e =>
-														handleInput("buildingNumber", e.target.value)
-													}
-												/>
-											</>
-										) : (
-											<FieldValue>
-												{estate.address?.street || "-"}
-												{estate.address?.buildingNumber
-													? " " + estate.address?.buildingNumber
-													: ""}
-											</FieldValue>
-										)}
+										<FieldValue>
+											{estate.address?.street || "-"}
+											{estate.address?.buildingNumber
+												? " " + estate.address?.buildingNumber
+												: ""}
+										</FieldValue>
 									</FieldValueBox>
 								</FieldColumn>
 								<FieldColumn>
@@ -603,14 +477,7 @@ export const YourEstate: React.FC = () => {
 										<FieldLabel>Miasto</FieldLabel>
 									</FieldLabelRow>
 									<FieldValueBox>
-										{edit ? (
-											<FieldInput
-												value={editData.address.city}
-												onChange={e => handleInput("city", e.target.value)}
-											/>
-										) : (
-											<FieldValue>{estate.address?.city || "-"}</FieldValue>
-										)}
+										<FieldValue>{estate.address?.city || "-"}</FieldValue>
 									</FieldValueBox>
 								</FieldColumn>
 								<FieldColumn>
@@ -622,14 +489,7 @@ export const YourEstate: React.FC = () => {
 										<FieldLabel>Kod pocztowy</FieldLabel>
 									</FieldLabelRow>
 									<FieldValueBox>
-										{edit ? (
-											<FieldInput
-												value={editData.address.zipCode}
-												onChange={e => handleInput("zipCode", e.target.value)}
-											/>
-										) : (
-											<FieldValue>{estate.address?.zipCode || "-"}</FieldValue>
-										)}
+										<FieldValue>{estate.address?.zipCode || "-"}</FieldValue>
 									</FieldValueBox>
 								</FieldColumn>
 							</FieldsRow>
@@ -644,16 +504,7 @@ export const YourEstate: React.FC = () => {
 										<FieldLabel>Nr głównego konta bankowego</FieldLabel>
 									</FieldLabelRow>
 									<FieldValueBox>
-										{edit ? (
-											<FieldInput
-												value={editData.bankAccountNumber}
-												onChange={e =>
-													handleInput("bankAccountNumber", e.target.value)
-												}
-											/>
-										) : (
-											<FieldValue>{estate.bankAccountNumber || "-"}</FieldValue>
-										)}
+										<FieldValue>{estate.bankAccountNumber || "-"}</FieldValue>
 									</FieldValueBox>
 								</FieldColumn>
 							</FieldsRow>
@@ -668,21 +519,11 @@ export const YourEstate: React.FC = () => {
 										<FieldLabel>Czynsz płatny do</FieldLabel>
 									</FieldLabelRow>
 									<FieldValueBox>
-										{edit ? (
-											<FieldInput
-												placeholder='np. 10'
-												value={editData.rentDueDate}
-												onChange={e =>
-													handleInput("rentDueDate", e.target.value)
-												}
-											/>
-										) : (
-											<FieldValue>
-												{estate.rentDueDate
-													? `do ${estate.rentDueDate} każdego miesiąca`
-													: "-"}
-											</FieldValue>
-										)}
+										<FieldValue>
+											{estate.rentDueDate
+												? `do ${estate.rentDueDate} każdego miesiąca`
+												: "-"}
+										</FieldValue>
 									</FieldValueBox>
 								</HalfWidthColumn>
 								<HalfWidthColumn>
@@ -694,21 +535,11 @@ export const YourEstate: React.FC = () => {
 										<FieldLabel>Ilość mieszkań</FieldLabel>
 									</FieldLabelRow>
 									<FieldValueBox>
-										{edit ? (
-											<FieldInput
-												type='number'
-												value={editData.numberOfFlats}
-												onChange={e =>
-													handleInput("numberOfFlats", e.target.value)
-												}
-											/>
-										) : (
-											<FieldValue>
-												{typeof estate.numberOfFlats === "number"
-													? estate.numberOfFlats
-													: "-"}
-											</FieldValue>
-										)}
+										<FieldValue>
+											{typeof estate.numberOfFlats === "number"
+												? estate.numberOfFlats
+												: "-"}
+										</FieldValue>
 									</FieldValueBox>
 								</HalfWidthColumn>
 							</FieldsRow>
@@ -758,6 +589,16 @@ export const YourEstate: React.FC = () => {
 				<EstateDocumentsModal
 					open={showDocumentsModal}
 					onClose={() => setShowDocumentsModal(false)}
+					estateId={estate._id}
+				/>
+			)}
+			
+			{/* Modal edycji osiedla */}
+			{showEditModal && estate && (
+				<EditEstateModal
+					open={showEditModal}
+					onClose={() => setShowEditModal(false)}
+					onSuccess={handleEditSuccess}
 					estateId={estate._id}
 				/>
 			)}
